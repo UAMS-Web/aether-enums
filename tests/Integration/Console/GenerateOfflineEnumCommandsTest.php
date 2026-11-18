@@ -88,11 +88,12 @@ it('writes the three ISCED enums from the bundled fixtures', function (): void {
 
     expect($exit)->toBe(0);
 
-    foreach (['IscedA2011', 'IscedP2011', 'IscedF2013'] as $enum) {
+    foreach (['IscedA2011' => 66, 'IscedP2011' => 91, 'IscedF2013' => 216] as $enum => $expectedCases) {
         $php = (string) file_get_contents(EnumPaths::enumFile($enum.'.php'));
 
         expect($php)->toContain('namespace UAMSWeb\\Aether\\Enums;')
             ->and($php)->toContain('enum '.$enum.': string')
+            ->and(substr_count($php, "\n    case "))->toBe($expectedCases)
             ->and($php)->not->toContain('App\\');
     }
 });
@@ -104,5 +105,6 @@ it('writes the ISCO-08 enum from the bundled workbooks', function (): void {
     expect($exit)->toBe(0)
         ->and($php)->toContain('namespace UAMSWeb\\Aether\\Enums;')
         ->and($php)->toContain('enum Isco08: string')
+        ->and(substr_count($php, "\n    case "))->toBe(619)
         ->and($php)->not->toContain('App\\');
 });

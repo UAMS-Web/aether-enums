@@ -8,6 +8,8 @@ The [README](https://github.com/UAMS-Web/aether-enums#the-enums) lists the twent
 
 ## Commands
 
+`generate:county-enum`, `generate:mime-type-enum`, `generate:state-enum` and `generate:zip-enum` write a timestamped file (`County_generated_<date>_<time>.php`) to review and rename over the committed enum; the others overwrite in place. `generate:zip-enum` needs `config('services.hud.usps_api_token')`.
+
 | Command | Writes |
 | --- | --- |
 | `generate:county-enum` | `County` |

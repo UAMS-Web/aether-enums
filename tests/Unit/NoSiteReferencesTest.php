@@ -11,10 +11,10 @@ declare(strict_types=1);
  */
 
 /** An `App\` class reference, in code (`App\Foo`) or in generated-code strings (`App\\Foo`); never `UAMSWeb\App\`. */
-const NO_SITE_REFERENCES_CLASS = '/(?<![\\\\\w])App\\\\{1,2}[A-Za-z]/';
+const NO_SITE_REFERENCES_CLASS = '/(?<![\w\\\\])\\\\?App\\\\{1,2}[A-Za-z]/';
 
 /** A call to a host application path helper. */
-const NO_SITE_REFERENCES_PATH_HELPER = '/\b(?:app_path|base_path|resource_path|storage_path|database_path)\s*\(/';
+const NO_SITE_REFERENCES_PATH_HELPER = '/\b(?:app_path|base_path|resource_path|storage_path|database_path|public_path|config_path|lang_path)\s*\(/';
 
 /**
  * The PHP files under the given directories, except this one (which names the patterns).
@@ -71,6 +71,7 @@ it('detects an App class reference in code and in a generated-code string', func
     expect(preg_match(NO_SITE_REFERENCES_CLASS, $source))->toBe(1);
 })->with([
     'use statement' => ['use App\\Enums\\Country;'],
+    'leading backslash' => ['$class = \\App\\Enums\\Country::class;'],
     'escaped string' => ['$out .= "use App\\\\Enums\\\\Country;\n";'],
 ]);
 

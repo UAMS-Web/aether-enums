@@ -13,6 +13,11 @@ use UAMSWeb\Aether\Enums\Generation\EnumPaths;
  * its backing type, case count, and a SHA-256 over its `NAME=value` lines. A changed
  * value, a dropped case or a new enum without a manifest entry fails here.
  *
+ * The manifest pins case names, backing values and counts. The metadata each case
+ * carries in its attributes (labels, descriptions) is not hashed here; the
+ * regeneration tests for the schema.org, ISCO-08 and ISCED enums compare it byte
+ * for byte against the committed files.
+ *
  * @command  vendor/bin/pest tests/Unit/EnumParityTest.php
  */
 
