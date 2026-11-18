@@ -2,11 +2,12 @@
 
 declare(strict_types=1);
 
-namespace UAMSWeb\AddonTemplate\Tests;
+namespace UAMSWeb\Aether\Enums\Tests;
 
 use Illuminate\Foundation\Application;
+use Maatwebsite\Excel\ExcelServiceProvider;
 use Statamic\Testing\AddonTestCase;
-use UAMSWeb\AddonTemplate\ServiceProvider;
+use UAMSWeb\Aether\Enums\ServiceProvider;
 
 /**
  * Base class for the Integration suite: boots a minimal Statamic through
@@ -20,6 +21,21 @@ abstract class TestCase extends AddonTestCase
      * @var string Class name of this add-on's service provider.
      */
     protected string $addonServiceProvider = ServiceProvider::class;
+
+    /**
+     * Register the add-on's providers and the Excel package's, which the ISCO-08 generator reads workbooks through.
+     *
+     * A host discovers `maatwebsite/excel` through Laravel's package discovery;
+     * Testbench does not, so the provider is added here.
+     *
+     * @param  Application  $app  The application being configured.
+     * @return list<class-string>
+     */
+    #[\Override]
+    protected function getPackageProviders($app): array
+    {
+        return [...parent::getPackageProviders($app), ExcelServiceProvider::class];
+    }
 
     /**
      * Give each parallel worker its own license-check cache, after Statamic's

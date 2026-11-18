@@ -26,5 +26,28 @@
         <include>
             <directory suffix=".php">./src</directory>
         </include>
+        <!-- Large machine-generated reference-data enums: php-code-coverage's static analyser
+             exhausts memory on them. Mirrors phpstan.neon.dist `excludePaths.analyse`. -->
+        <exclude>
+            <file>./src/CanadianProvince.php</file>
+            <file>./src/Country.php</file>
+            <file>./src/County.php</file>
+            <file>./src/CredentialRegistry.php</file>
+            <file>./src/Currency.php</file>
+            <file>./src/InternationalCodeDesignator.php</file>
+            <file>./src/IscedA2011.php</file>
+            <file>./src/IscedF2013.php</file>
+            <file>./src/IscedP2011.php</file>
+            <file>./src/Isco08.php</file>
+            <file>./src/Language.php</file>
+            <file>./src/LanguageBCP47.php</file>
+            <file>./src/MimeType.php</file>
+            <file>./src/SchemaDataType.php</file>
+            <file>./src/SchemaEnumerationMember.php</file>
+            <file>./src/SchemaProperty.php</file>
+            <file>./src/SchemaType.php</file>
+            <file>./src/State.php</file>
+            <file>./src/ZipCode.php</file>
+        </exclude>
     </source>
 </phpunit>

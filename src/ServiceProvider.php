@@ -2,9 +2,19 @@
 
 declare(strict_types=1);
 
-namespace UAMSWeb\AddonTemplate;
+namespace UAMSWeb\Aether\Enums;
 
+use Illuminate\Console\Command;
 use Statamic\Providers\AddonServiceProvider;
+use UAMSWeb\Aether\Enums\Console\GenerateCountyEnum;
+use UAMSWeb\Aether\Enums\Console\GenerateCredentialRegistryEnum;
+use UAMSWeb\Aether\Enums\Console\GenerateInternationalCodeDesignatorEnum;
+use UAMSWeb\Aether\Enums\Console\GenerateIscedEnums;
+use UAMSWeb\Aether\Enums\Console\GenerateIsco08Enum;
+use UAMSWeb\Aether\Enums\Console\GenerateMimeTypeEnum;
+use UAMSWeb\Aether\Enums\Console\GenerateSchemaTypeEnum;
+use UAMSWeb\Aether\Enums\Console\GenerateStateEnum;
+use UAMSWeb\Aether\Enums\Console\GenerateZipCodeEnum;
 
 /**
  * Service provider for the add-on.
@@ -16,6 +26,23 @@ use Statamic\Providers\AddonServiceProvider;
  */
 class ServiceProvider extends AddonServiceProvider
 {
+    /**
+     * The generator commands that rebuild the enums from their sources.
+     *
+     * @var list<class-string<Command>>
+     */
+    protected $commands = [
+        GenerateCountyEnum::class,
+        GenerateCredentialRegistryEnum::class,
+        GenerateInternationalCodeDesignatorEnum::class,
+        GenerateIscedEnums::class,
+        GenerateIsco08Enum::class,
+        GenerateMimeTypeEnum::class,
+        GenerateSchemaTypeEnum::class,
+        GenerateStateEnum::class,
+        GenerateZipCodeEnum::class,
+    ];
+
     /**
      * The Vite build of the Control Panel assets. `input` and `publicDirectory`
      * must match `vite.config.js`; the built files are committed under

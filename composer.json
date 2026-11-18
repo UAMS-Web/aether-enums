@@ -1,13 +1,13 @@
 {
-    "name": "uams-web/statamic-addon-template",
-    "description": "Starting point for UAMS Statamic add-ons. Replace this description when you start an add-on from it.",
+    "name": "uams-web/aether-enums",
+    "description": "The enums UAMS Statamic sites read (countries, currencies, languages, U.S. geography, MIME types, schema.org and standard classifications) and the commands that regenerate them.",
     "keywords": [
         "statamic",
         "statamic-addon"
     ],
     "type": "statamic-addon",
     "license": "MIT",
-    "homepage": "https://github.com/UAMS-Web/statamic-addon-template",
+    "homepage": "https://github.com/UAMS-Web/aether-enums",
     "authors": [
         {
             "name": "UAMS Web Services"
@@ -18,27 +18,27 @@
         }
     ],
     "support": {
-        "issues": "https://github.com/UAMS-Web/statamic-addon-template/issues",
-        "source": "https://github.com/UAMS-Web/statamic-addon-template"
+        "issues": "https://github.com/UAMS-Web/aether-enums/issues",
+        "source": "https://github.com/UAMS-Web/aether-enums"
     },
     "autoload": {
         "psr-4": {
-            "UAMSWeb\\AddonTemplate\\": "src/"
+            "UAMSWeb\\Aether\\Enums\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "UAMSWeb\\AddonTemplate\\Tests\\": "tests/"
+            "UAMSWeb\\Aether\\Enums\\Tests\\": "tests/"
         }
     },
     "extra": {
         "statamic": {
-            "name": "Addon Template",
-            "description": "Replace this description when you start an add-on from the template."
+            "name": "Aether Enums",
+            "description": "The shared enums, and the commands that regenerate them from their sources."
         },
         "laravel": {
             "providers": [
-                "UAMSWeb\\AddonTemplate\\ServiceProvider"
+                "UAMSWeb\\Aether\\Enums\\ServiceProvider"
             ]
         },
         "composer-exit-on-patch-failure": true
@@ -55,6 +55,7 @@
     ],
     "require": {
         "php": "^8.4",
+        "maatwebsite/excel": "^4.0",
         "statamic/cms": "^6.35"
     },
     "require-dev": {

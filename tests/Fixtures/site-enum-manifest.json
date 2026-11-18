@@ -1,0 +1,102 @@
+{
+    "ApStyleGregorianMonth": {
+        "backing": "string",
+        "cases": 12,
+        "sha256": "990f7a82ea5f44fcd5bdd3ba5f1ec81fee837e1cbc00d450c026f7b79a1e74aa"
+    },
+    "CanadianProvince": {
+        "backing": "string",
+        "cases": 13,
+        "sha256": "7a2cc42b7e546ade1d4dd76f47ad21a18cd39bc5b2c5d87ead388db1178061e3"
+    },
+    "Country": {
+        "backing": "string",
+        "cases": 250,
+        "sha256": "df7931bad0e4a0c4d6b031c885e6bfcb2ce4d1d3f8b8900afd47833d5436f053"
+    },
+    "County": {
+        "backing": "string",
+        "cases": 3243,
+        "sha256": "08b3a2d7d310ecb3c409a72787e8d917ebeae0e4198499be62c494ab21792a77"
+    },
+    "CredentialRegistry": {
+        "backing": "string",
+        "cases": 120,
+        "sha256": "028b13e0a3b456d18416500e33a8f97db95eddd6a21fad33603fc2ff96882f5c"
+    },
+    "Currency": {
+        "backing": "string",
+        "cases": 154,
+        "sha256": "49f12c1a622246e5fb88b5fbbafd200ffacd23d56202e08cfd997b17c409bf67"
+    },
+    "InternationalCodeDesignator": {
+        "backing": "string",
+        "cases": 240,
+        "sha256": "c0969ee922b840fd59aac48dd078c9fe107d51c5b1313c8e86ff71897e078b66"
+    },
+    "IscedA2011": {
+        "backing": "string",
+        "cases": 66,
+        "sha256": "196afad634f4afec86d95da6f79806309ded8f9c696d1cf11ab758ee9ba30798"
+    },
+    "IscedF2013": {
+        "backing": "string",
+        "cases": 216,
+        "sha256": "36bf2ad5a8b000f576be62bf97bfaa477df9f010c37e0f2c72f864eeb98a6c79"
+    },
+    "IscedP2011": {
+        "backing": "string",
+        "cases": 91,
+        "sha256": "0c55d699d8c2fc1c2335152407a42f2029432f7a6ef181c5f53333e630daab74"
+    },
+    "Isco08": {
+        "backing": "string",
+        "cases": 619,
+        "sha256": "7a6d854ba3fd400bf389ed94a384abafccfb7a2e502812c55c7503169c85773c"
+    },
+    "Language": {
+        "backing": "string",
+        "cases": 8037,
+        "sha256": "cea2f9e5f2114486f88636a3c545a29a48e9eb1e3f50d9b3693e66841ecd88bf"
+    },
+    "LanguageBCP47": {
+        "backing": "string",
+        "cases": 8268,
+        "sha256": "3b2927e2b6a9f4ca326b6798d30c93983acfb918003634b87b90332e8c531261"
+    },
+    "MimeType": {
+        "backing": "string",
+        "cases": 2564,
+        "sha256": "db601006735d1c630882cc5fb60b27ee1a8ae1cc408b6b5b2961ff05e6f7f143"
+    },
+    "SchemaDataType": {
+        "backing": "string",
+        "cases": 20,
+        "sha256": "d6acad6e1fa4e19995cb625456760624774711442b484a24833039b0551dcd53"
+    },
+    "SchemaEnumerationMember": {
+        "backing": "string",
+        "cases": 531,
+        "sha256": "27ab1399693e9507de9f980f6f748b4b633524d229912bb949f74ff3992f8025"
+    },
+    "SchemaProperty": {
+        "backing": "string",
+        "cases": 1521,
+        "sha256": "1a9425b82ab484fb4c05ae176959a13d62e1dbf344837f14866a5edfc26b67e7"
+    },
+    "SchemaType": {
+        "backing": "string",
+        "cases": 915,
+        "sha256": "b46ae99f5cec3e69532356c6ce69be770382452b247ee81844ceb34d0947f036"
+    },
+    "State": {
+        "backing": "string",
+        "cases": 56,
+        "sha256": "5e3c8af9454c495bc1a1aa9ff256d67d8f37804814f9d314a56a397412e92261"
+    },
+    "ZipCode": {
+        "backing": "string",
+        "cases": 39485,
+        "sha256": "c8be38f79c59ca7fb7d661001c9be2517f1b34b5f625cafa29bdffc56f883d98"
+    }
+}

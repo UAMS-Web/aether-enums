@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
+use Illuminate\Support\Facades\Artisan;
 use Statamic\Facades\Addon;
-use UAMSWeb\AddonTemplate\ServiceProvider;
 
 /**
  * The add-on boots inside a minimal Statamic.
@@ -12,14 +12,22 @@ use UAMSWeb\AddonTemplate\ServiceProvider;
  */
 it('is discovered by Statamic as an add-on', function (): void {
     // Expect the add-on among those Statamic booted
-    expect(Addon::all()->map->package()->all())->toContain('uams-web/statamic-addon-template');
+    expect(Addon::all()->map->package()->all())->toContain('uams-web/aether-enums');
 });
 
-it('publishes its config file under the tag the README names', function (): void {
-    // Read the paths published under the config tag
-    $paths = ServiceProvider::pathsToPublish(null, 'statamic-addon-template-config');
+it('registers all nine generator commands', function (): void {
+    // Read the command names Artisan knows from the add-on's provider alone
+    $registered = array_keys(Artisan::all());
 
-    // Expect the package config to publish to the app's config directory
-    expect(array_map(realpath(...), array_keys($paths)))->toBe([realpath(__DIR__.'/../../config/statamic-addon-template.php')])
-        ->and(array_values($paths))->toBe([config_path('statamic-addon-template.php')]);
+    expect($registered)->toContain(
+        'generate:county-enum',
+        'generate:credential-registry-enum',
+        'generate:international-code-designator-enum',
+        'generate:isced-enums',
+        'generate:isco-08-enum',
+        'generate:mime-type-enum',
+        'generate:schema-type-enum',
+        'generate:state-enum',
+        'generate:zip-enum',
+    );
 });

@@ -1,4 +1,4 @@
-Written against v1.4.0.
+Written against the unreleased `main` branch.
 
 One entry per symptom, as you meet it: the message or behavior, its cause, and the fix.
 
