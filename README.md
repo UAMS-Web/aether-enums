@@ -46,7 +46,7 @@ The `Attributes` namespace holds the metadata classes the enums read their data 
 
 ## Regenerating the enums
 
-Each generator rewrites its enum file in `src/` of a checkout of this add-on. They are development tools, run from the add-on's own checkout, and they are not meant to run from a host's `vendor/` directory.
+Each generator writes into `src/` of a checkout of this add-on. `generate:county-enum`, `generate:mime-type-enum`, `generate:state-enum` and `generate:zip-enum` write a timestamped file (`County_generated_<date>_<time>.php`) to review and rename over the committed enum; the others overwrite their enum in place. They are development tools, run from the add-on's own checkout, and they are not meant to run from a host's `vendor/` directory.
 
 | Command | Source | Writes |
 | --- | --- | --- |
@@ -60,11 +60,15 @@ Each generator rewrites its enum file in `src/` of a checkout of this add-on. Th
 | `generate:state-enum` | TIGERweb states layer | `State` |
 | `generate:zip-enum` | TIGERweb ZIP code layer | `ZipCode` |
 
-`generate:mime-type-enum` reads `node_modules/mime-db/db.json`, so run `npm ci` first. `generate:isco-08-enum --local` reads the two workbooks in `src/Generation/Isco08/`; without it, the command downloads them or takes `--definitions` and `--index` paths. `generate:isco-08-enum` reads its workbooks through `maatwebsite/excel`, which the add-on requires.
+`generate:zip-enum` reads the HUD USPS crosswalk token from `config('services.hud.usps_api_token')`, which the host or test environment must set. `generate:mime-type-enum` reads `node_modules/mime-db/db.json`, so run `npm ci` first. `generate:isco-08-enum --local` reads the two workbooks in `src/Generation/Isco08/`; without it, the command downloads them or takes `--definitions` and `--index` paths. `generate:isco-08-enum` reads its workbooks through `maatwebsite/excel`, which the add-on requires.
 
 ### Warming a host's cache after `generate:schema-type-enum`
 
 A host that keeps a cache keyed on schema types can have `generate:schema-type-enum` warm it. Bind an implementation of `UAMSWeb\Aether\Enums\Generation\Schema\AliasCacheWarmer` in the container; the command calls `warm()` with the generated type names and reports that it did. With no binding the step is skipped.
+
+## License
+
+MIT. See [`LICENSE`](LICENSE).
 
 ## Development
 
