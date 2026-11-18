@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Illuminate\Support\Str;
 use Symfony\Component\Process\Process;
 use UAMSWeb\Aether\Enums\Generation\MimeType\MimeTypeEnumGenerator;
 
@@ -1227,7 +1228,7 @@ it('renders output that Pint reports clean with no separate pass (#719)', functi
     ], ['- Apache MIME Types']);
 
     $root = dirname(__DIR__, 3);
-    $path = sys_get_temp_dir().DIRECTORY_SEPARATOR.'mime-enum-'.bin2hex(random_bytes(6)).'.php';
+    $path = sys_get_temp_dir().DIRECTORY_SEPARATOR.'mime-enum-'.Str::random(12).'.php';
     file_put_contents($path, $php);
 
     try {

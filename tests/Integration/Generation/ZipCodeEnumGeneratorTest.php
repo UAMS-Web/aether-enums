@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
 use Symfony\Component\Process\Process;
 use UAMSWeb\Aether\Enums\Generation\ZipCode\ZipCodeEnumGenerator;
 
@@ -564,7 +565,7 @@ it('renders output that Pint reports clean with no separate pass (#718)', functi
     ]));
 
     $root = dirname(__DIR__, 3);
-    $path = sys_get_temp_dir().DIRECTORY_SEPARATOR.'zip-enum-'.bin2hex(random_bytes(6)).'.php';
+    $path = sys_get_temp_dir().DIRECTORY_SEPARATOR.'zip-enum-'.Str::random(12).'.php';
     file_put_contents($path, $php);
 
     try {

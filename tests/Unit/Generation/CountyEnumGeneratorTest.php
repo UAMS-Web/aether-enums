@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Illuminate\Support\Str;
 use Symfony\Component\Process\Process;
 use UAMSWeb\Aether\Enums\Generation\County\CountyEnumGenerator;
 
@@ -162,7 +163,7 @@ it('renders output that Pint reports clean with no separate pass (#716)', functi
     ], ['Example Source Line']);
 
     $root = dirname(__DIR__, 3);
-    $path = sys_get_temp_dir().DIRECTORY_SEPARATOR.'county-enum-'.bin2hex(random_bytes(6)).'.php';
+    $path = sys_get_temp_dir().DIRECTORY_SEPARATOR.'county-enum-'.Str::random(12).'.php';
     file_put_contents($path, $php);
 
     try {

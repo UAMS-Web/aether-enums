@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Illuminate\Support\Str;
 use UAMSWeb\Aether\Enums\Generation\Schema\SchemaJsonLdStructureAnalyzer;
 
 covers(SchemaJsonLdStructureAnalyzer::class);
@@ -583,7 +584,7 @@ function runStructureCliQuietly(array $server, string $dir): array
  */
 function structureCliDir(): string
 {
-    $dir = sys_get_temp_dir().'/jsonld-analyzer-unit-'.bin2hex(random_bytes(6));
+    $dir = sys_get_temp_dir().'/jsonld-analyzer-unit-'.Str::random(12);
     mkdir($dir);
 
     return $dir;

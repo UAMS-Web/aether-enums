@@ -3,8 +3,8 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
 use Maatwebsite\Excel\Facades\Excel;
-use Symfony\Component\Process\Process;
 use UAMSWeb\Aether\Enums\Generation\EnumPaths;
 use UAMSWeb\Aether\Enums\Generation\Isco08\Isco08EnumGenerator;
 use UAMSWeb\Aether\Enums\Imports\SpreadsheetImport;
@@ -115,7 +115,7 @@ function isco08DefinitionsHeader(): array
  */
 function isco08WithScratchAppPath(Closure $callback): mixed
 {
-    $scratch = sys_get_temp_dir().DIRECTORY_SEPARATOR.'isco08-app-'.bin2hex(random_bytes(6));
+    $scratch = sys_get_temp_dir().DIRECTORY_SEPARATOR.'isco08-app-'.Str::random(12);
     File::ensureDirectoryExists($scratch.DIRECTORY_SEPARATOR.'Enums');
 
     try {
@@ -749,12 +749,16 @@ it('fails by URL when a workbook does not download', function (string $failing):
  *
  * @command  php artisan test --compact tests/Unit/Services/EnumGeneration/Isco08EnumGeneratorTest.php
  */
+// Pint-clean without running Pint here: the generated file must match the committed
+// enum byte for byte apart from its date, and `composer test:pint` checks the
+// committed enum on every gate run. Running Pint over the generated file as well
+// cost a third of the suite's time for no extra guarantee.
 it('regenerates the committed ISCO-08 enum from the committed workbooks, Pint-clean', function (): void {
     $fixtures = Isco08EnumGenerator::defaultLocalFixturePaths();
     expect(Isco08EnumGenerator::localFixturesAreReadable())->toBeTrue();
 
     $committed = (string) file_get_contents(EnumPaths::enumFile('Isco08.php'));
-    $scratch = sys_get_temp_dir().DIRECTORY_SEPARATOR.'isco08-enum-'.bin2hex(random_bytes(6));
+    $scratch = sys_get_temp_dir().DIRECTORY_SEPARATOR.'isco08-enum-'.Str::random(12);
     File::ensureDirectoryExists($scratch.DIRECTORY_SEPARATOR.'Enums');
 
     try {
@@ -764,19 +768,10 @@ it('regenerates the committed ISCO-08 enum from the committed workbooks, Pint-cl
 
         expect($path)->toBe(EnumPaths::enumFile('Isco08.php'));
         $php = (string) file_get_contents($path);
-
-        $pint = new Process(
-            [PHP_BINARY, EnumPaths::root().'/vendor/bin/pint', '--test', '--config', EnumPaths::root().'/pint.json', $path],
-            EnumPaths::root(),
-        );
-        $pint->run();
     } finally {
         EnumPaths::useEnumDirectory(null);
         File::deleteDirectory($scratch);
     }
-
-    // Pint has nothing to change in the file exactly as the generator wrote it.
-    expect($pint->getExitCode())->toBe(0, $pint->getOutput().$pint->getErrorOutput());
 
     // Byte for byte the committed enum, apart from the date it was generated on.
     $undated = static fn (string $source): string => (string) preg_replace('/^ \* Generated: \d{4}-\d{2}-\d{2}$/m', ' * Generated: <date>', $source);

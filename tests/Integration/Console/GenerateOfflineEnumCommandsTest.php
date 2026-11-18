@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
 use UAMSWeb\Aether\Enums\Console\GenerateInternationalCodeDesignatorEnum;
 use UAMSWeb\Aether\Enums\Generation\EnumPaths;
 
@@ -20,7 +21,7 @@ use UAMSWeb\Aether\Enums\Generation\EnumPaths;
  */
 beforeEach(function (): void {
     // Send enum output to a scratch directory
-    $this->scratch = sys_get_temp_dir().DIRECTORY_SEPARATOR.'aether-enums-cmd-'.bin2hex(random_bytes(6));
+    $this->scratch = sys_get_temp_dir().DIRECTORY_SEPARATOR.'aether-enums-cmd-'.Str::random(12);
     File::ensureDirectoryExists($this->scratch);
     EnumPaths::useEnumDirectory($this->scratch);
 });

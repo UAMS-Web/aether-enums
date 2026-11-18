@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
 use Symfony\Component\Process\Process;
 use UAMSWeb\Aether\Enums\CredentialRegistry;
 use UAMSWeb\Aether\Enums\Generation\CredentialRegistry\CredentialRegistryEnumGenerator;
@@ -160,7 +161,7 @@ it('renders output that Pint reports clean with no separate pass (#721)', functi
     $php = credentialRegistrySampleSource();
 
     $root = dirname(__DIR__, 3);
-    $path = sys_get_temp_dir().DIRECTORY_SEPARATOR.'credential-enum-'.bin2hex(random_bytes(6)).'.php';
+    $path = sys_get_temp_dir().DIRECTORY_SEPARATOR.'credential-enum-'.Str::random(12).'.php';
     file_put_contents($path, $php);
 
     try {

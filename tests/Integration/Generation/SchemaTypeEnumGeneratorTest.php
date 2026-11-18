@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\File;
-use Symfony\Component\Process\Process;
 use UAMSWeb\Aether\Enums\Generation\Schema\SchemaTypeEnumGenerator;
 
 /**
@@ -11,6 +10,13 @@ use UAMSWeb\Aether\Enums\Generation\Schema\SchemaTypeEnumGenerator;
  * (src/Generation/Schema/SchemaTypeEnumGenerator.php) writes, rendered
  * from the schema.org JSON-LD committed beside it so no network is involved
  * (UAMS-Web/uams-statamic#722).
+ *
+ * The generated files must be Pint-clean with no separate pass. That holds
+ * without running Pint here: the test below requires each generated file to
+ * match the committed enum byte for byte apart from its date, and
+ * `composer test:pint` checks the committed enums on every gate run. Running
+ * Pint over the 2.2 MB of generated PHP here as well cost most of the suite's
+ * time for no extra guarantee.
  *
  * @command  php artisan test --compact tests/Unit/Services/EnumGeneration/SchemaTypeEnumGeneratorTest.php
  */
@@ -39,36 +45,6 @@ function schemaEnumGeneratedFiles(): array
     return $written;
 }
 
-it('renders all four files so Pint reports them clean with no separate pass (#722)', function (): void {
-    $root = dirname(__DIR__, 3);
-    $directory = sys_get_temp_dir().DIRECTORY_SEPARATOR.'schema-enums-'.bin2hex(random_bytes(6));
-    mkdir($directory);
-    $files = schemaEnumGeneratedFiles();
-
-    foreach ($files as $name => $php) {
-        file_put_contents($directory.DIRECTORY_SEPARATOR.$name.'.php', $php);
-    }
-
-    try {
-        $process = new Process([
-            PHP_BINARY,
-            $root.'/vendor/bin/pint',
-            '--test',
-            '--config',
-            $root.'/pint.json',
-            $directory,
-        ]);
-        $process->setTimeout(300);
-        $process->run();
-    } finally {
-        array_map(unlink(...), glob($directory.DIRECTORY_SEPARATOR.'*.php') ?: []);
-        rmdir($directory);
-    }
-
-    expect(array_keys($files))->toBe(['SchemaDataType', 'SchemaEnumerationMember', 'SchemaProperty', 'SchemaType'])
-        ->and($process->getExitCode())->toBe(0, $process->getOutput().$process->getErrorOutput());
-});
-
 it('regenerates each committed enum byte for byte apart from its generation date (#722)', function (): void {
     $root = dirname(__DIR__, 3);
     $files = schemaEnumGeneratedFiles();
@@ -82,5 +58,5 @@ it('regenerates each committed enum byte for byte apart from its generation date
         expect($undated($php))->toBe($undated($committed));
     }
 
-    expect($files)->toHaveCount(4);
+    expect(array_keys($files))->toBe(['SchemaDataType', 'SchemaEnumerationMember', 'SchemaProperty', 'SchemaType']);
 });

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Illuminate\Support\Str;
 use UAMSWeb\Aether\Enums\Generation\InternationalCodeDesignator\IcdXmlParser;
 
 /**
@@ -182,7 +183,7 @@ function withIcdXmlServer(string $fileName, string $body, Closure $callback): mi
     $port = (int) substr((string) strrchr((string) stream_socket_get_name($probe, false), ':'), 1);
     fclose($probe);
 
-    $root = sys_get_temp_dir().'/icd-xml-'.bin2hex(random_bytes(6));
+    $root = sys_get_temp_dir().'/icd-xml-'.Str::random(12);
     mkdir($root);
     $process = null;
     $pipes = [];
@@ -327,13 +328,24 @@ it('points the default fetch at the OpenPEPPOL ICD code list', function (): void
 it('collapses text to an empty string when PCRE fails on it', function (): void {
     // The (string) cast turns preg_replace()'s null on a PCRE error into ''. With
     // the JIT off and a backtrack limit of 1, collapsing whitespace fails on any
-    // text that contains some, while text with none passes through. Turning the
-    // JIT off at runtime does not reach a pattern an earlier test in this file
-    // already compiled with it, so this runs only where PHP starts with the JIT
-    // off (Herd on macOS does).
+    // text that contains some, while text with none passes through. The JIT does
+    // not enforce the backtrack limit, and turning it off at runtime reaches only
+    // patterns compiled afterwards: PHP keeps compiled patterns in a per-process
+    // cache of 4096 entries, so a pattern an earlier test compiled with the JIT
+    // stays JIT-compiled. The cache evicts oldest first, so compiling 8192
+    // throwaway patterns evicts every earlier entry whatever the cache held, and
+    // the parser's pattern is compiled again here with the JIT off. That lets
+    // this run on a PHP started with the JIT on (GitHub's Ubuntu runner) as well
+    // as off (Herd on macOS).
     $jit = ini_get('pcre.jit');
     $limit = ini_get('pcre.backtrack_limit');
     ini_set('pcre.jit', '0');
+
+    // Evict every pattern compiled so far, the parser's included
+    for ($i = 0; $i < 8192; $i++) {
+        preg_match('/pcre-cache-evict-'.$i.'/', '');
+    }
+
     ini_set('pcre.backtrack_limit', '1');
 
     try {
@@ -351,4 +363,4 @@ it('collapses text to an empty string when PCRE fails on it', function (): void 
     expect($records)->toBe([
         ['id' => '0060', 'name' => '', 'description' => 'DUNS'],
     ]);
-})->skip(fn (): bool => ini_get('pcre.jit') === '1', 'needs PHP started with pcre.jit=0');
+});

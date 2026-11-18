@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
 use Symfony\Component\Process\Process;
 use UAMSWeb\Aether\Enums\Generation\EnumPaths;
 use UAMSWeb\Aether\Enums\Generation\Isced\IscedA2011EnumGenerator;
@@ -40,7 +41,7 @@ covers(
 beforeEach(function (): void {
     // Remember the committed enum directory, then point the output at a throwaway root
     $this->committedAppPath = EnumPaths::enumDirectory();
-    $this->iscedRoot = sys_get_temp_dir().'/isced-enums-'.bin2hex(random_bytes(6));
+    $this->iscedRoot = sys_get_temp_dir().'/isced-enums-'.Str::random(12);
     File::ensureDirectoryExists($this->iscedRoot.'/Enums');
     EnumPaths::useEnumDirectory($this->iscedRoot.'/Enums');
 });
@@ -59,7 +60,7 @@ afterEach(function (): void {
  */
 function iscedFixture(string $root, string $json): string
 {
-    $path = $root.'/fixture-'.bin2hex(random_bytes(4)).'.json';
+    $path = $root.'/fixture-'.Str::random(8).'.json';
     file_put_contents($path, $json);
 
     return $path;
