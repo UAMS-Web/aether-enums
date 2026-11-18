@@ -1,4 +1,4 @@
-Written against v1.4.0.
+Written against the unreleased `main` branch.
 
 <The situation, in a sentence.>
 

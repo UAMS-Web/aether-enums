@@ -75,16 +75,41 @@ parameters:
     # Host-bound tests, if the add-on grows any, extend the host application's `Tests\TestCase`,
     # which does not exist in this package, so they cannot be resolved here. They run in the host.
     # The `(?)` marks the path optional, so the entry is harmless until `tests/Feature` exists.
+    #
+    # Large machine-generated reference-data enums (ISO 639 languages, ISO 3166
+    # countries, U.S. ZIP codes and counties, ISCO and ISCED classifications,
+    # currencies, MIME types, schema.org and CTDL vocabularies). Each case carries
+    # a big constant data attribute, and `ZipCode.php` alone is about 6 MB with
+    # roughly 40,000 cases. PHPStan's scope analyzer exhausts memory on a file this
+    # size, and the case lists have no hand-written control flow to check. They are
+    # listed under `analyse`, not `analyseAndScan`, so they stay in the symbol table
+    # and their call sites remain type-checked. The attribute classes under
+    # `src/Attributes` and the small logic enum `ApStyleGregorianMonth` are analyzed
+    # normally. Mirror this list in `phpunit.xml`'s coverage excludes and in
+    # `rector.php`'s `$generatedEnumSkips`.
     excludePaths:
-        - tests/Feature (?)
-
-    # Machine-generated files with no hand-written control flow (large
-    # reference-data enums, for example) go under `analyse` so they stay in the
-    # symbol table and their call sites remain type-checked, while PHPStan skips
-    # walking their bodies. Mirror the list in phpunit.xml's coverage excludes.
-    # excludePaths:
-    #     analyse:
-    #         - app/Enums/Generated.php
+        analyseAndScan:
+            - tests/Feature (?)
+        analyse:
+            - src/CanadianProvince.php
+            - src/Country.php
+            - src/County.php
+            - src/CredentialRegistry.php
+            - src/Currency.php
+            - src/InternationalCodeDesignator.php
+            - src/IscedA2011.php
+            - src/IscedF2013.php
+            - src/IscedP2011.php
+            - src/Isco08.php
+            - src/Language.php
+            - src/LanguageBCP47.php
+            - src/MimeType.php
+            - src/SchemaDataType.php
+            - src/SchemaEnumerationMember.php
+            - src/SchemaProperty.php
+            - src/SchemaType.php
+            - src/State.php
+            - src/ZipCode.php
 
     # Add an entry here only for a finding you have argued against, pinned by
     # `identifier` and `path` (and `message` when the path has more than one

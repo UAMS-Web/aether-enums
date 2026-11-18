@@ -35,3 +35,15 @@ Oldest first, one entry per closed decision, so **a new entry is appended to the
 **Rejected.** Snapshotting the synced files into the template: every new add-on would begin with a stale copy that conflicts with its first sync pull request. Copying a license from an existing add-on: legal has not decided which license applies.
 
 **Companion.** `UAMS-Web/uams-statamic#261`.
+
+---
+
+## 2026-11-18: Move the site enums here, name the add-on `uams-web/aether-enums`, and keep the add-on free of site classes
+
+**Decision.** The add-on is `uams-web/aether-enums` in the `UAMSWeb\Aether\Enums` namespace. The twenty enums sit in `src/` under that namespace with their `Attributes`, and the nine generator commands move with them (`Console`, `Generation`, `Imports`). The generators write into the add-on's own `src/` (through `Generation\EnumPaths`) and read the bundled fixtures beside themselves, never a host's `app/` or `base_path()`. The site's `EntriesBySchemaType` cache warm becomes the `Generation\Schema\AliasCacheWarmer` contract, which a host binds and the add-on skips when it is unbound. `SpreadsheetImport` moves with the ISCO-08 generator. Enum values are pinned by `tests/Fixtures/site-enum-manifest.json`, built from the site's own files.
+
+**Why.** UAMS-Web/uams-statamic#767 decided that one shared add-on holds the enums for the fieldtype add-on and the site. Nothing here may depend on a class in `App\`, so the two site classes the generators reached are either moved (`SpreadsheetImport`) or inverted into a contract (`EntriesBySchemaType`). A manifest taken from the site's files, rather than from the moved copies, is what shows the values did not change in the move.
+
+**Rejected.** Moving `EntriesBySchemaType` here: it is a 400-line Statamic query scope that reads the site's entries, so the add-on would depend on the site's content model. Keeping `app_path()` and `base_path()` in the generators: they resolve inside whichever host runs them, so a generator run from a host's `vendor/` would write outside the add-on. A snapshot generated from the moved copies: it would pass whatever the move did to a value.
+
+**Companion.** `UAMS-Web/aether-enums#5`, `UAMS-Web/uams-statamic#995` and `UAMS-Web/uams-statamic#767`.

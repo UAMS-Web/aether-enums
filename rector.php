@@ -111,6 +111,32 @@ $sweepOnlyRules = [
 // ];
 $neverRules = [];
 
+// Large machine-generated reference-data enums: the same list as phpstan.neon.dist
+// `excludePaths.analyse` and phpunit.xml's coverage excludes. Rector spends minutes
+// on them (and its parallel workers overflow their buffer on the largest) with no
+// hand-written control flow to improve.
+$generatedEnumSkips = [
+    __DIR__.'/src/CanadianProvince.php',
+    __DIR__.'/src/Country.php',
+    __DIR__.'/src/County.php',
+    __DIR__.'/src/CredentialRegistry.php',
+    __DIR__.'/src/Currency.php',
+    __DIR__.'/src/InternationalCodeDesignator.php',
+    __DIR__.'/src/IscedA2011.php',
+    __DIR__.'/src/IscedF2013.php',
+    __DIR__.'/src/IscedP2011.php',
+    __DIR__.'/src/Isco08.php',
+    __DIR__.'/src/Language.php',
+    __DIR__.'/src/LanguageBCP47.php',
+    __DIR__.'/src/MimeType.php',
+    __DIR__.'/src/SchemaDataType.php',
+    __DIR__.'/src/SchemaEnumerationMember.php',
+    __DIR__.'/src/SchemaProperty.php',
+    __DIR__.'/src/SchemaType.php',
+    __DIR__.'/src/State.php',
+    __DIR__.'/src/ZipCode.php',
+];
+
 return RectorConfig::configure()
     // The directories holding first-party PHP. Never a vendor
     // directory, and in a fork of a vendor plugin only the paths that hold our
@@ -128,6 +154,7 @@ return RectorConfig::configure()
         // would otherwise rewrite PHPUnit 9 and its dependencies. Uncomment.
         // __DIR__.'/tests/Integration/vendor',
         ...$neverRules,
+        ...$generatedEnumSkips,
         ...($isSweepProfile ? [] : $sweepOnlyRules),
     ])
     ->withPreparedSets(

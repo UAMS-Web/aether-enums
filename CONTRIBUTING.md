@@ -1,4 +1,4 @@
-# Contributing to statamic-addon-template
+# Contributing to aether-enums
 
 <!-- uams-claude-skills:begin -->
 ## Branches and environments

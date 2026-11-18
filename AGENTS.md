@@ -1,4 +1,4 @@
-# Agent instructions for statamic-addon-template
+# Agent instructions for aether-enums
 
 This file is the single source of agent instructions for this repository. Claude Code, Cursor and Codex all read it directly; there is no `CLAUDE.md`, because Claude Code reads `AGENTS.md` only when `CLAUDE.md` is absent. Put instructions here, never in a `CLAUDE.md`.
 
@@ -46,7 +46,7 @@ Skills: [`code-quality`](.claude/skills/code-quality/SKILL.md), [`decision-log`]
 
 ## About this repository
 
-A Statamic add-on (`uams-web/statamic-addon-template`, namespace `UAMSWeb\AddonTemplate`). Replace this paragraph with what it does. It is a Composer library with no `artisan`, `.env`, database or front end of its own; a host application boots it through `extra.laravel.providers`. The `statamic-package-conventions` skill covers what that changes.
+A Statamic add-on (`uams-web/aether-enums`, namespace `UAMSWeb\Aether\Enums`). It holds the twenty reference-data enums the UAMS sites and the fieldtype add-on share (`src/`, namespace `UAMSWeb\Aether\Enums`) and the nine `generate:*` commands that rebuild them from their sources (`src/Console`, `src/Generation`). The generated enums are large (`ZipCode.php` is about 6 MB), so PHPStan, Rector and coverage skip them (`phpstan.neon.dist`, `rector.php` and `phpunit.xml` carry the same list, kept in sync), and a generator writes into `src/` of the checkout it runs from. Nothing here may reference an `App\` class; `tests/Unit/NoSiteReferencesTest.php` enforces it. It is a Composer library with no `artisan`, `.env`, database or front end of its own; a host application boots it through `extra.laravel.providers`. The `statamic-package-conventions` skill covers what that changes.
 
 ### Commands
 

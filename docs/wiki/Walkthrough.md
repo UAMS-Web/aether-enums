@@ -1,8 +1,8 @@
-Written against v1.4.0.
+Written against the unreleased `main` branch.
 
 By the end of this page you will have <what the reader will have>. Replace this sentence with it, then the steps below.
 
-It assumes the add-on is installed (see [Installation (README)](https://github.com/UAMS-Web/statamic-addon-template#installation)) in <the setup the reader needs>.
+It assumes the add-on is installed (see [Installation (README)](https://github.com/UAMS-Web/aether-enums#installation)) in <the setup the reader needs>.
 
 ## 1. <An action>
 
