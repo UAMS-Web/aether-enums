@@ -66,6 +66,17 @@ Each generator writes into `src/` of a checkout of this add-on. `generate:county
 
 A host that keeps a cache keyed on schema types can have `generate:schema-type-enum` warm it. Bind an implementation of `UAMSWeb\Aether\Enums\Generation\Schema\AliasCacheWarmer` in the container; the command calls `warm()` with the generated type names and reports that it did. With no binding the step is skipped.
 
+### Analyzing the schema.org JSON-LD
+
+`SchemaJsonLdStructureAnalyzer` reports the structure of the schema.org vocabulary `generate:schema-type-enum` reads: the value types seen under each key, the keys per node type, the `@id` prefixes and the distinct `@type` values (`src/Generation/Schema/schema-jsonld-normalization.md` describes the shape the generator relies on). It runs from the root of a checkout of this add-on, after `composer install`:
+
+```bash
+php scripts/analyze-schema-jsonld.php
+php scripts/analyze-schema-jsonld.php path/to/vocabulary.jsonld
+```
+
+With no argument it reads `src/Generation/Schema/schemaorg-current-https.jsonld`. It writes `schema-jsonld-structure-report.txt` (or `.json` with `ANALYZE_OUTPUT=json`) and `schema-jsonld-all-ids.txt` into `src/Generation/Schema/`, and exits 1 when the input cannot be read or parsed. A host's dist install leaves `scripts/` out of the package, and where a source install puts it in the host's `vendor/` directory the add-on has no `vendor/` of its own, so the script refuses to run there rather than write into the host's `vendor/`.
+
 ## License
 
 MIT. See [`LICENSE`](LICENSE).
