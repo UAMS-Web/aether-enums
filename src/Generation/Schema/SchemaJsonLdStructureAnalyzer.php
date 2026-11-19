@@ -26,13 +26,15 @@ namespace UAMSWeb\Aether\Enums\Generation\Schema;
  * The root of analysis is @graph (the document root is unwrapped). @context is
  * not recursed into (its namespace map is ignored).
  *
- * Run it from the project root through its entry script:
+ * Run it from the root of a checkout of this add-on, after `composer install`,
+ * through its entry script:
  *   php scripts/analyze-schema-jsonld.php
  *   php scripts/analyze-schema-jsonld.php [path-to.jsonld]
  *
  * Writes schema-jsonld-structure-report.txt (or .json if ANALYZE_OUTPUT=json)
  * and schema-jsonld-all-ids.txt into this class's directory, which also holds
- * the default input. The class has no load-time code, so autoloading or
+ * the default input. The script refuses to run where the add-on is installed
+ * as a host's dependency, so it never writes into the host's `vendor/`. The class has no load-time code, so autoloading or
  * including this file only defines the class (UAMS-Web/uams-statamic-archive#1008).
  */
 final class SchemaJsonLdStructureAnalyzer
