@@ -76,6 +76,21 @@ it('maps known prefixes to stable namespace URIs', function (): void {
     expect($method->invoke($generator, 'ceterms:Sub:Term'))->toBe('https://purl.org/ctdl/terms/Sub:Term');
 });
 
+it('suffixes a case named class in any casing and leaves other keywords alone (#13)', function (): void {
+    $generator = new CredentialRegistryEnumGenerator;
+    $method = new ReflectionClass($generator)->getMethod('ensureUniqueCaseName');
+    $used = [];
+
+    // PHP rejects `case Class` in every casing, so each gets the suffix
+    expect($method->invokeArgs($generator, ['Class', &$used]))->toBe('ClassTerm');
+    expect($method->invokeArgs($generator, ['CLASS', &$used]))->toBe('CLASSTerm');
+    expect($method->invokeArgs($generator, ['ClAss', &$used]))->toBe('ClAssTerm');
+    // PHP accepts other keywords and near-misses as case names, so they pass through unchanged
+    expect($method->invokeArgs($generator, ['Function', &$used]))->toBe('Function');
+    expect($method->invokeArgs($generator, ['Enum', &$used]))->toBe('Enum');
+    expect($method->invokeArgs($generator, ['Classes', &$used]))->toBe('Classes');
+});
+
 it('drops a redundant broader parent, keeping the narrowest', function (): void {
     $generator = new CredentialRegistryEnumGenerator;
     $method = new ReflectionClass($generator)->getMethod('subclassOfStringFromFixtureParents');
