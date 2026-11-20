@@ -34,86 +34,18 @@ final class CredentialRegistryEnumGenerator
     private const string CTDL_JSON_RELEASE_ID = '20260327';
 
     /**
-     * PHP keywords and reserved words that cannot be used as enum case names.
+     * Case names PHP rejects in an enum declaration, in lower case; a generated case whose name matches
+     * one of them in any casing gets a `Term` suffix.
      *
-     * @var list<string>
+     * PHP accepts most keywords as an enum case name and rejects `class` (`Foo::class` is the class-name
+     * constant), in every casing: `Class`, `CLASS` and `ClAss` are all parse errors. Checked under
+     * PHP 8.4.27 and 8.5.12 against the 75 keywords this list used to carry, each declared as a case
+     * and read as `self::<Name>->value`: only `Class` failed, and the control `Widget` passed.
+     *
+     * @var list<lowercase-string>
      */
     private const array RESERVED_CASE_NAMES = [
-        'Abstract',
-        'And',
-        'Array',
-        'As',
-        'Break',
-        'Callable',
-        'Case',
-        'Catch',
-        'Class',
-        'Clone',
-        'Const',
-        'Continue',
-        'Declare',
-        'Default',
-        'Die',
-        'Do',
-        'Echo',
-        'Else',
-        'Elseif',
-        'Empty',
-        'Enddeclare',
-        'Endfor',
-        'Endforeach',
-        'Endif',
-        'Endswitch',
-        'Endwhile',
-        'Enum',
-        'Eval',
-        'Exit',
-        'Extends',
-        'False',
-        'Final',
-        'Finally',
-        'Fn',
-        'For',
-        'Foreach',
-        'Function',
-        'Global',
-        'Goto',
-        'If',
-        'Implements',
-        'Include',
-        'Include_once',
-        'Instanceof',
-        'Insteadof',
-        'Interface',
-        'Isset',
-        'List',
-        'Match',
-        'Namespace',
-        'New',
-        'Null',
-        'Or',
-        'Parent',
-        'Print',
-        'Private',
-        'Protected',
-        'Public',
-        'Readonly',
-        'Require',
-        'Require_once',
-        'Return',
-        'Self',
-        'Static',
-        'Switch',
-        'Throw',
-        'Trait',
-        'True',
-        'Try',
-        'Unset',
-        'Use',
-        'Var',
-        'While',
-        'Xor',
-        'Yield',
+        'class',
     ];
 
     /**
@@ -974,11 +906,11 @@ PHP;
      */
     private function ensureUniqueCaseName(string $caseName, array &$usedCaseNames): string
     {
-        // Check if the case name is reserved
+        // PHP keywords are case-insensitive, so a reserved name matches in any casing
         $candidate = $caseName;
         // Every value compared here is a string, so the strict flag cannot change the result (TrueToFalse)
         // @pest-mutate-ignore: TrueToFalse
-        if (\in_array($candidate, self::RESERVED_CASE_NAMES, true)) {
+        if (\in_array(strtolower($candidate), self::RESERVED_CASE_NAMES, true)) {
             $candidate .= 'Term';
         }
 
