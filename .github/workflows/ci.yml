@@ -16,6 +16,12 @@ name: CI
 # `src/` has code deletes that input. With the input false the chain's `Chain result` job treats
 # the skipped `mutate` job as success and still fails on any other skipped job.
 #
+# `mutate-paths` selects the changed files a pull request or a push mutates. It lists the 19 generated
+# enums as `:(exclude)` pathspecs, the same files `phpunit.xml` excludes from coverage: a mutation run
+# over `src/ZipCode.php` (6 MB) does not finish. A file named explicitly to Pest bypasses its own
+# ignore list, so the exclusion has to happen here; `tests/Unit/MutationScopeTest.php` fails when this
+# list and the `phpunit.xml` list differ.
+#
 # RUN_REMOTE_CI: budget kill-switch.
 # GitHub Actions minutes bill at the organization level, one pool shared by every UAMS-Web
 # repository, and only private repositories consume them. Every job below, the call included, and
@@ -73,7 +79,27 @@ jobs:
     with:
       linux-only: true
       mutate: false
-      mutate-paths: src
+      mutate-paths: >-
+        src
+        :(exclude)src/CanadianProvince.php
+        :(exclude)src/Country.php
+        :(exclude)src/County.php
+        :(exclude)src/CredentialRegistry.php
+        :(exclude)src/Currency.php
+        :(exclude)src/InternationalCodeDesignator.php
+        :(exclude)src/IscedA2011.php
+        :(exclude)src/IscedF2013.php
+        :(exclude)src/IscedP2011.php
+        :(exclude)src/Isco08.php
+        :(exclude)src/Language.php
+        :(exclude)src/LanguageBCP47.php
+        :(exclude)src/MimeType.php
+        :(exclude)src/SchemaDataType.php
+        :(exclude)src/SchemaEnumerationMember.php
+        :(exclude)src/SchemaProperty.php
+        :(exclude)src/SchemaType.php
+        :(exclude)src/State.php
+        :(exclude)src/ZipCode.php
 
   # Not in the chain: the repository's decision log has an order a person can break by hand.
   decision-log:

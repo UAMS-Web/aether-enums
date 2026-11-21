@@ -116,4 +116,10 @@ parameters:
     # site), with a comment naming the cause. Never a namespace-wide message
     # pattern. Unmatched entries fail the run (`reportUnmatchedIgnoredErrors`
     # defaults to true), so a stale ignore reds rather than rots.
-    ignoreErrors: []
+    ignoreErrors:
+        # Pest marks its service container `@internal`, and the mutation plugin offers no public way to
+        # set the paths a run skips from tests/Pest.php (`mutate()` is not defined by the installed
+        # plugin). Pest's own `mutates()` reaches the same repository through this container.
+        -
+            identifier: staticMethod.internalClass
+            path: tests/Pest.php
