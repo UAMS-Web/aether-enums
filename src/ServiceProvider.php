@@ -32,14 +32,41 @@ class ServiceProvider extends AddonServiceProvider
      * @var list<class-string<Command>>
      */
     protected $commands = [
+        // A property default holds no executable line, so coverage reports the item as uncovered although
+        // tests/Integration/ServiceProviderTest.php pins the command it registers.
+        // @pest-mutate-ignore: RemoveArrayItem
         GenerateCountyEnum::class,
+        // A property default holds no executable line, so coverage reports the item as uncovered although
+        // tests/Integration/ServiceProviderTest.php pins the command it registers.
+        // @pest-mutate-ignore: RemoveArrayItem
         GenerateCredentialRegistryEnum::class,
+        // A property default holds no executable line, so coverage reports the item as uncovered although
+        // tests/Integration/ServiceProviderTest.php pins the command it registers.
+        // @pest-mutate-ignore: RemoveArrayItem
         GenerateInternationalCodeDesignatorEnum::class,
+        // A property default holds no executable line, so coverage reports the item as uncovered although
+        // tests/Integration/ServiceProviderTest.php pins the command it registers.
+        // @pest-mutate-ignore: RemoveArrayItem
         GenerateIscedEnums::class,
+        // A property default holds no executable line, so coverage reports the item as uncovered although
+        // tests/Integration/ServiceProviderTest.php pins the command it registers.
+        // @pest-mutate-ignore: RemoveArrayItem
         GenerateIsco08Enum::class,
+        // A property default holds no executable line, so coverage reports the item as uncovered although
+        // tests/Integration/ServiceProviderTest.php pins the command it registers.
+        // @pest-mutate-ignore: RemoveArrayItem
         GenerateMimeTypeEnum::class,
+        // A property default holds no executable line, so coverage reports the item as uncovered although
+        // tests/Integration/ServiceProviderTest.php pins the command it registers.
+        // @pest-mutate-ignore: RemoveArrayItem
         GenerateSchemaTypeEnum::class,
+        // A property default holds no executable line, so coverage reports the item as uncovered although
+        // tests/Integration/ServiceProviderTest.php pins the command it registers.
+        // @pest-mutate-ignore: RemoveArrayItem
         GenerateStateEnum::class,
+        // A property default holds no executable line, so coverage reports the item as uncovered although
+        // tests/Integration/ServiceProviderTest.php pins the command it registers.
+        // @pest-mutate-ignore: RemoveArrayItem
         GenerateZipCodeEnum::class,
     ];
 
