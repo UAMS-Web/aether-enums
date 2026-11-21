@@ -119,8 +119,7 @@ function isco08WithScratchAppPath(Closure $callback): mixed
     File::ensureDirectoryExists($scratch.DIRECTORY_SEPARATOR.'Enums');
 
     try {
-        EnumPaths::useEnumDirectory($scratch.DIRECTORY_SEPARATOR.'Enums');
-        EnumPaths::useGenerationDirectory($scratch.DIRECTORY_SEPARATOR.'Generation');
+        useScratchEnumPaths($scratch.DIRECTORY_SEPARATOR.'Enums', $scratch.DIRECTORY_SEPARATOR.'Generation');
 
         return $callback($scratch);
     } finally {
@@ -762,7 +761,7 @@ it('regenerates the committed ISCO-08 enum from the committed workbooks, Pint-cl
     File::ensureDirectoryExists($scratch.DIRECTORY_SEPARATOR.'Enums');
 
     try {
-        EnumPaths::useEnumDirectory($scratch.DIRECTORY_SEPARATOR.'Enums');
+        useScratchEnumPaths($scratch.DIRECTORY_SEPARATOR.'Enums');
 
         $path = (new Isco08EnumGenerator)->generate($fixtures['definitions'], $fixtures['index']);
 

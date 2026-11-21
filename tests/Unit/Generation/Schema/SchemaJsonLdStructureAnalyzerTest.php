@@ -587,6 +587,10 @@ function structureCliDir(): string
     $dir = sys_get_temp_dir().'/jsonld-analyzer-unit-'.Str::random(12);
     mkdir($dir);
 
+    // A report path built wrong lands in the working directory (a mutant did: a file named `txt` in the
+    // repository root, UAMS-Web/aether-enums#23), so the working directory is the scratch directory.
+    chdir($dir);
+
     return $dir;
 }
 
@@ -595,6 +599,9 @@ function structureCliDir(): string
  */
 function removeStructureCliDir(string $dir): void
 {
+    // Leave the scratch directory before deleting it, back to the add-on root the suite runs from.
+    chdir(dirname(__DIR__, 4));
+
     foreach (glob($dir.'/*') ?: [] as $path) {
         is_dir($path) ? rmdir($path) : unlink($path);
     }
