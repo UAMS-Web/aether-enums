@@ -103,9 +103,6 @@ final class GeneratorUtils
             CURLINFO_HTTP_CODE
         );
 
-        // Close the cURL handle
-        curl_close($ch);
-
         // Clean up variables to free up memory
         unset(
             $headerLines,
