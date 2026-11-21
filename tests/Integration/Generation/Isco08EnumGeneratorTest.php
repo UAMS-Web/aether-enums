@@ -180,7 +180,7 @@ it('generates every structure level from small workbooks, filling titles from th
 
         $path = (new Isco08EnumGenerator)->generate('defs.xlsx', 'index.xlsx');
 
-        expect($path)->toBe($scratch.DIRECTORY_SEPARATOR.'Enums/Isco08.php');
+        expect($path)->toBe($scratch.DIRECTORY_SEPARATOR.'Enums'.DIRECTORY_SEPARATOR.'Isco08.php');
 
         return (string) file_get_contents($path);
     }), 'generated enum');
@@ -268,7 +268,7 @@ it('fails by path when the enum file cannot be written', function (): void {
 
         try {
             expect(fn (): string => (new Isco08EnumGenerator)->generate('defs.xlsx', 'index.xlsx'))
-                ->toThrow(ValueError::class, 'Failed to write enum file: '.$scratch.DIRECTORY_SEPARATOR.'Enums/Isco08.php');
+                ->toThrow(ValueError::class, 'Failed to write enum file: '.$scratch.DIRECTORY_SEPARATOR.'Enums'.DIRECTORY_SEPARATOR.'Isco08.php');
         } finally {
             restore_error_handler();
         }
