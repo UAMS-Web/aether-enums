@@ -23,7 +23,7 @@ beforeEach(function (): void {
     // Send enum output to a scratch directory
     $this->scratch = sys_get_temp_dir().DIRECTORY_SEPARATOR.'aether-enums-cmd-'.Str::random(12);
     File::ensureDirectoryExists($this->scratch);
-    EnumPaths::useEnumDirectory($this->scratch);
+    useScratchEnumPaths($this->scratch);
 });
 
 afterEach(function (): void {

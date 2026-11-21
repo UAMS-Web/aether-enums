@@ -43,7 +43,7 @@ beforeEach(function (): void {
     $this->committedAppPath = EnumPaths::enumDirectory();
     $this->iscedRoot = sys_get_temp_dir().'/isced-enums-'.Str::random(12);
     File::ensureDirectoryExists($this->iscedRoot.'/Enums');
-    EnumPaths::useEnumDirectory($this->iscedRoot.'/Enums');
+    useScratchEnumPaths($this->iscedRoot.'/Enums');
 });
 
 afterEach(function (): void {
