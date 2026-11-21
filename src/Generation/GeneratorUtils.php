@@ -209,9 +209,6 @@ final class GeneratorUtils
                 CURLINFO_HTTP_CODE
             ) === 200;
 
-        // Close the cURL handle
-        curl_close($ch);
-
         // Close the file pointer
         fclose($fp);
 
