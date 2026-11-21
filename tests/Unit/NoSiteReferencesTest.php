@@ -64,7 +64,8 @@ function noSiteReferencesMatching(string $pattern, array $directories = ['src', 
 
 it('scans the add-on source and tests', function (): void {
     expect(noSiteReferencesFiles())->not->toBeEmpty()
-        ->and(noSiteReferencesFiles())->toContain(dirname(__DIR__, 2).'/src/ServiceProvider.php');
+        ->and(array_map(static fn (string $file): string => str_replace('\\', '/', $file), noSiteReferencesFiles()))
+        ->toContain(str_replace('\\', '/', dirname(__DIR__, 2)).'/src/ServiceProvider.php');
 });
 
 it('detects an App class reference in code and in a generated-code string', function (string $source): void {
