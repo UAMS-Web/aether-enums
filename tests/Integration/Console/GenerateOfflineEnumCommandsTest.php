@@ -109,3 +109,55 @@ it('writes the ISCO-08 enum from the bundled workbooks', function (): void {
         ->and(substr_count($php, "\n    case "))->toBe(619)
         ->and($php)->not->toContain('App\\');
 });
+
+it('reports the fetch, the case count and the output file', function (): void {
+    offlineEnumCommandIcdWith([
+        ['id' => '0007', 'name' => 'Organisationsnummer', 'description' => 'Swedish organization number'],
+        ['id' => '0060', 'name' => 'Data Universal Numbering System', 'description' => ''],
+    ]);
+
+    Artisan::call('generate:international-code-designator-enum');
+
+    expect(Artisan::output())->toBe(
+        'Fetching OpenPEPPOL ICD code list...'.PHP_EOL
+        .'Generated InternationalCodeDesignator enum with 2 cases'.PHP_EOL
+        .'Output file: '.EnumPaths::enumFile('InternationalCodeDesignator.php').PHP_EOL
+    );
+});
+
+it('writes the ICD enum whole: the committed header and accessors around the cases it is given', function (): void {
+    offlineEnumCommandIcdWith([
+        ['id' => '0007', 'name' => "Organisation's \ number", 'description' => 'Swedish organization number'],
+        ['id' => '0060', 'name' => 'Data Universal Numbering System', 'description' => ''],
+    ]);
+
+    $before = date('Y-m-d');
+    Artisan::call('generate:international-code-designator-enum');
+    $after = date('Y-m-d');
+
+    $generated = (string) file_get_contents(EnumPaths::enumFile('InternationalCodeDesignator.php'));
+    $committed = (string) file_get_contents(dirname(__DIR__, 3).'/src/InternationalCodeDesignator.php');
+
+    // The committed enum is the independent oracle for everything but the cases and the date
+    $cut = static fn (string $php): array => [
+        substr($php, 0, (int) strpos($php, '    #[IcdInfo(')),
+        substr($php, (int) strpos($php, "    /**\n     * Lazily built")),
+    ];
+    [$generatedHead, $generatedTail] = $cut($generated);
+    [$committedHead, $committedTail] = $cut($committed);
+
+    $datedHeads = [
+        $before => preg_replace('/ \* Generated: \d{4}-\d{2}-\d{2}\n/', " * Generated: {$before}\n", $committedHead),
+        $after => preg_replace('/ \* Generated: \d{4}-\d{2}-\d{2}\n/', " * Generated: {$after}\n", $committedHead),
+    ];
+
+    expect($generatedHead)->toBeIn($datedHeads)
+        ->and($generatedTail)->toBe($committedTail)
+        ->and($generated)->toContain(
+            "    #[IcdInfo(id: '0007', name: 'Organisation\\'s \\\\ number', description: 'Swedish organization number')]\n"
+            ."    case ICD_0007 = '0007';\n\n"
+            ."    #[IcdInfo(id: '0060', name: 'Data Universal Numbering System', description: '')]\n"
+            ."    case ICD_0060 = '0060';\n\n"
+        )
+        ->and($generated)->toEndWith("    }\n}\n");
+});

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use UAMSWeb\Aether\Enums\Attributes\SchemaTypeInfo;
 use UAMSWeb\Aether\Enums\CountryInfo;
+use UAMSWeb\Aether\Enums\IcdInfo;
 use UAMSWeb\Aether\Enums\MimeTypeInfo;
 
 /**
@@ -41,4 +42,10 @@ it('gives a SchemaTypeInfo no description, relations, slug or replacement when t
         ->and($info->slug)->toBe('')
         ->and($info->superseded_by)->toBeNull()
         ->and($info->members)->toBe([]);
+});
+
+it('gives an IcdInfo an empty description when it is omitted', function (): void {
+    $info = new IcdInfo('0007', 'Organisationsnummer');
+
+    expect($info->description)->toBe('');
 });
