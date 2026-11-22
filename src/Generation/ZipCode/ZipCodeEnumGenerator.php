@@ -147,11 +147,9 @@ final class ZipCodeEnumGenerator
                 $case
             );
 
-            // Advise GC in long-running loop. It only frees memory, so the
-            // RemoveFunctionCall mutant is equivalent. It is not annotated: that mutator
-            // removes this statement itself, a marker above a statement reaches only its
-            // children, and the trailing marker that would reach it is inert on Windows,
-            // where the plugin's line map does not work.
+            // Advise GC in long-running loop. It only frees memory, so the RemoveFunctionCall
+            // mutant is equivalent.
+            // @pest-mutate-ignore: RemoveFunctionCall
             gc_collect_cycles();
         }
 
@@ -484,7 +482,9 @@ final class ZipCodeEnumGenerator
                             foreach ($chunk as $result) {
                                 // Check if result is valid
                                 if (! \is_array($result)) {
-                                    // Skip invalid results
+                                    // Skip invalid results. The chunk reader hands over only decoded objects, so this
+                                    // guard only narrows the type for static analysis and `continue` is never reached.
+                                    // @pest-mutate-ignore: ContinueToBreak
                                     continue;
                                 }
 
@@ -599,10 +599,8 @@ final class ZipCodeEnumGenerator
             }
 
             // Force garbage collection after each state. It only frees memory, so the
-            // RemoveFunctionCall mutant is equivalent. It is not annotated: that mutator
-            // removes this statement itself, a marker above a statement reaches only its
-            // children, and the trailing marker that would reach it is inert on Windows,
-            // where the plugin's line map does not work.
+            // RemoveFunctionCall mutant is equivalent.
+            // @pest-mutate-ignore: RemoveFunctionCall
             gc_collect_cycles();
 
             // Clean up variables to free up memory
@@ -692,7 +690,10 @@ final class ZipCodeEnumGenerator
     private function parseLargeJsonFileInChunks(
         string $filePath,
         callable $chunkProcessor,
+        // The only caller passes the chunk size and the crosswalk type, so neither default is ever used.
+        // @pest-mutate-ignore: IncrementInteger, DecrementInteger
         int $chunkSize = 1000,
+        // @pest-mutate-ignore: IncrementInteger, DecrementInteger
         int $crosswalkType = 0
     ): bool {
         // Open file for reading
@@ -857,12 +858,9 @@ final class ZipCodeEnumGenerator
                             // Reset the current chunk
                             $currentChunk = [];
 
-                            // Force garbage collection after each chunk. It only frees
-                            // memory, so the RemoveFunctionCall mutant is equivalent. It is
-                            // not annotated: that mutator removes this statement itself, a
-                            // marker above a statement reaches only its children, and the
-                            // trailing marker that would reach it is inert on Windows, where
-                            // the plugin's line map does not work.
+                            // Force garbage collection after each chunk. It only frees memory,
+                            // so the RemoveFunctionCall mutant is equivalent.
+                            // @pest-mutate-ignore: RemoveFunctionCall
                             gc_collect_cycles();
 
                             // Check if we should stop processing
@@ -889,10 +887,8 @@ final class ZipCodeEnumGenerator
         }
 
         // Close file handle. PHP closes it anyway when the function returns, so the
-        // RemoveFunctionCall mutant is equivalent. It is not annotated: that mutator
-        // removes this statement itself, a marker above a statement reaches only its
-        // children, and the trailing marker that would reach it is inert on Windows,
-        // where the plugin's line map does not work.
+        // RemoveFunctionCall mutant is equivalent.
+        // @pest-mutate-ignore: RemoveFunctionCall
         fclose($handle);
 
         // ---
