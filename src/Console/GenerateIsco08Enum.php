@@ -43,6 +43,8 @@ class GenerateIsco08Enum extends Command
     {
         $this->info('Generating ISCO-08 enum from ILO workbooks...');
 
+        // option() already returns a bool for a switch, so the cast changes nothing.
+        // @pest-mutate-ignore: RemoveBooleanCast
         $useLocal = (bool) $this->option('local');
         if ($useLocal) {
             if (! Isco08EnumGenerator::localFixturesAreReadable()) {
@@ -62,7 +64,12 @@ class GenerateIsco08Enum extends Command
         } else {
             $definitionsOption = $this->option('definitions');
             $indexOption = $this->option('index');
+            // An absent option is null, which both operands of the condition turn into null, so `&&` and `||` agree.
+            // An empty option must reach the download branch, which needs the network.
+            // @pest-mutate-ignore: BooleanAndToBooleanOr,EmptyStringToNotEmpty
             $definitions = \is_string($definitionsOption) && $definitionsOption !== '' ? $definitionsOption : null;
+            // Same reasons as the line above.
+            // @pest-mutate-ignore: BooleanAndToBooleanOr,EmptyStringToNotEmpty
             $index = \is_string($indexOption) && $indexOption !== '' ? $indexOption : null;
 
             if ($definitions !== null) {
