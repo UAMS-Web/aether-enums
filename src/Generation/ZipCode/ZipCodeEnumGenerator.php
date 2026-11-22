@@ -484,7 +484,9 @@ final class ZipCodeEnumGenerator
                             foreach ($chunk as $result) {
                                 // Check if result is valid
                                 if (! \is_array($result)) {
-                                    // Skip invalid results
+                                    // Skip invalid results. The chunk reader hands over only decoded objects, so this
+                                    // guard only narrows the type for static analysis and `continue` is never reached.
+                                    // @pest-mutate-ignore: ContinueToBreak
                                     continue;
                                 }
 
@@ -692,7 +694,10 @@ final class ZipCodeEnumGenerator
     private function parseLargeJsonFileInChunks(
         string $filePath,
         callable $chunkProcessor,
+        // The only caller passes the chunk size and the crosswalk type, so neither default is ever used.
+        // @pest-mutate-ignore: IncrementInteger, DecrementInteger
         int $chunkSize = 1000,
+        // @pest-mutate-ignore: IncrementInteger, DecrementInteger
         int $crosswalkType = 0
     ): bool {
         // Open file for reading
