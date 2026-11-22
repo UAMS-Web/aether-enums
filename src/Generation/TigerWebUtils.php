@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace UAMSWeb\Aether\Enums\Generation;
 
+use Closure;
+
 /**
  * Utility class for interacting with TIGERweb APIs.
  *
@@ -18,22 +20,85 @@ class TigerWebUtils
      * @var array<string>
      */
     private static array $commonOutFields = [
+        // A property default holds no executable line, so coverage reports each item as uncovered although
+        // tests/Unit/Generation/TigerWebUtilsTest.php pins the whole field list in the request URL.
+        // @pest-mutate-ignore: RemoveArrayItem
         'NAME',
+        // A property default holds no executable line, so coverage reports each item as uncovered although
+        // tests/Unit/Generation/TigerWebUtilsTest.php pins the whole field list in the request URL.
+        // @pest-mutate-ignore: RemoveArrayItem
         'BASENAME',
+        // A property default holds no executable line, so coverage reports each item as uncovered although
+        // tests/Unit/Generation/TigerWebUtilsTest.php pins the whole field list in the request URL.
+        // @pest-mutate-ignore: RemoveArrayItem
         'STATE',
+        // A property default holds no executable line, so coverage reports each item as uncovered although
+        // tests/Unit/Generation/TigerWebUtilsTest.php pins the whole field list in the request URL.
+        // @pest-mutate-ignore: RemoveArrayItem
         'GEOID',
+        // A property default holds no executable line, so coverage reports each item as uncovered although
+        // tests/Unit/Generation/TigerWebUtilsTest.php pins the whole field list in the request URL.
+        // @pest-mutate-ignore: RemoveArrayItem
         'FUNCSTAT',
+        // A property default holds no executable line, so coverage reports each item as uncovered although
+        // tests/Unit/Generation/TigerWebUtilsTest.php pins the whole field list in the request URL.
+        // @pest-mutate-ignore: RemoveArrayItem
         'MTFCC',
+        // A property default holds no executable line, so coverage reports each item as uncovered although
+        // tests/Unit/Generation/TigerWebUtilsTest.php pins the whole field list in the request URL.
+        // @pest-mutate-ignore: RemoveArrayItem
         'OID',
+        // A property default holds no executable line, so coverage reports each item as uncovered although
+        // tests/Unit/Generation/TigerWebUtilsTest.php pins the whole field list in the request URL.
+        // @pest-mutate-ignore: RemoveArrayItem
         'LSADC',
+        // A property default holds no executable line, so coverage reports each item as uncovered although
+        // tests/Unit/Generation/TigerWebUtilsTest.php pins the whole field list in the request URL.
+        // @pest-mutate-ignore: RemoveArrayItem
         'AREALAND',
+        // A property default holds no executable line, so coverage reports each item as uncovered although
+        // tests/Unit/Generation/TigerWebUtilsTest.php pins the whole field list in the request URL.
+        // @pest-mutate-ignore: RemoveArrayItem
         'AREAWATER',
+        // A property default holds no executable line, so coverage reports each item as uncovered although
+        // tests/Unit/Generation/TigerWebUtilsTest.php pins the whole field list in the request URL.
+        // @pest-mutate-ignore: RemoveArrayItem
         'OBJECTID',
+        // A property default holds no executable line, so coverage reports each item as uncovered although
+        // tests/Unit/Generation/TigerWebUtilsTest.php pins the whole field list in the request URL.
+        // @pest-mutate-ignore: RemoveArrayItem
         'CENTLAT',
+        // A property default holds no executable line, so coverage reports each item as uncovered although
+        // tests/Unit/Generation/TigerWebUtilsTest.php pins the whole field list in the request URL.
+        // @pest-mutate-ignore: RemoveArrayItem
         'CENTLON',
+        // A property default holds no executable line, so coverage reports each item as uncovered although
+        // tests/Unit/Generation/TigerWebUtilsTest.php pins the whole field list in the request URL.
+        // @pest-mutate-ignore: RemoveArrayItem
         'INTPTLAT',
+        // A property default holds no executable line, so coverage reports each item as uncovered although
+        // tests/Unit/Generation/TigerWebUtilsTest.php pins the whole field list in the request URL.
+        // @pest-mutate-ignore: RemoveArrayItem
         'INTPTLON',
     ];
+
+    /**
+     * Replaces `GeneratorUtils::httpGet()` for the requests below (tests only), so the URL, headers
+     * and parsing can be checked without reaching the network.
+     *
+     * @var ?Closure(string, array<int|string, string>, int, string): ?string
+     */
+    private static ?Closure $httpGet = null;
+
+    /**
+     * Replace the HTTP GET the requests use, or restore the real one with null.
+     *
+     * @param  ?Closure(string, array<int|string, string>, int, string): ?string  $httpGet
+     */
+    public static function useHttpGet(?Closure $httpGet): void
+    {
+        self::$httpGet = $httpGet;
+    }
 
     /**
      * Fetch records from a TIGERweb MapServer endpoint.
@@ -69,7 +134,8 @@ class TigerWebUtils
             .'&f=json';
 
         // Make the HTTP GET request to the TIGERweb API.
-        $json = GeneratorUtils::httpGet(
+        $httpGet = self::$httpGet ?? GeneratorUtils::httpGet(...);
+        $json = $httpGet(
             $url,
             [
                 'Accept' => 'application/json,*/*',
@@ -151,7 +217,9 @@ class TigerWebUtils
             $json,
         );
 
-        // Hint the GC since this can process thousands of features
+        // Hint the GC since this can process thousands of features. It only frees memory, so
+        // the RemoveFunctionCall mutant is equivalent.
+        // @pest-mutate-ignore: RemoveFunctionCall
         gc_collect_cycles();
 
         // Return the list of attribute arrays for downstream mapping
