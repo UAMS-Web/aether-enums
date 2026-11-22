@@ -77,6 +77,8 @@ class GenerateInternationalCodeDesignatorEnum extends Command
             $outputPath
         );
 
+        // Collecting cycles early changes memory use only, which no test reads.
+        // @pest-mutate-ignore: RemoveFunctionCall
         gc_collect_cycles();
 
         return 0;
@@ -91,6 +93,9 @@ class GenerateInternationalCodeDesignatorEnum extends Command
      */
     protected function fetchRecords(): ?array
     {
+        // This is the one line that reaches the network, so every test replaces the method, and
+        // IcdXmlParserTest covers the fetch and parse against a local server.
+        // @pest-mutate-ignore: AlwaysReturnNull
         return IcdXmlParser::fetchAndParse();
     }
 
