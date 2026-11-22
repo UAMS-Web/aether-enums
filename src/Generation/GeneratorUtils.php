@@ -36,6 +36,8 @@ final class GeneratorUtils
             // If the key is an integer, add the value as a string;
             // otherwise, add the key and value as a string
             // ---
+            // Every header value is already a string, so the cast changes nothing a caller can see.
+            // @pest-mutate-ignore: RemoveStringCast
             $headerLines[] = \is_int($key) ? (string) $value : sprintf('%s: %s', $key, $value);
         }
 
@@ -63,7 +65,12 @@ final class GeneratorUtils
      */
     public static function httpGet(
         string $url,
+        // A parameter default holds no executable line, so coverage reports it as uncovered although
+        // GeneratorUtilsTest asserts the default `Accept` header reaches the server.
+        // @pest-mutate-ignore: RemoveArrayItem
         array $headers = ['Accept' => 'application/json'],
+        // The default timeout is not observable: cURL does not report it and a test would wait 60 seconds.
+        // @pest-mutate-ignore: DecrementInteger, IncrementInteger
         int $timeoutSeconds = 60,
         string $userAgent = 'UAMS-Statamic-Enum-Generator/1.0'
     ): ?string {
@@ -88,7 +95,11 @@ final class GeneratorUtils
                 CURLOPT_FOLLOWLOCATION => true,
                 CURLOPT_TIMEOUT => $timeoutSeconds,
                 CURLOPT_USERAGENT => $curlUserAgent,
+                // The TLS options cannot be observed: the suite has no TLS endpoint, and the local server speaks plain HTTP.
+                // @pest-mutate-ignore: TrueToFalse, RemoveArrayItem
                 CURLOPT_SSL_VERIFYPEER => true,
+                // The TLS options cannot be observed: the suite has no TLS endpoint, and the local server speaks plain HTTP.
+                // @pest-mutate-ignore: DecrementInteger, IncrementInteger, RemoveArrayItem
                 CURLOPT_SSL_VERIFYHOST => 2,
                 CURLOPT_HTTPHEADER => $headerLines,
             ]
@@ -114,6 +125,8 @@ final class GeneratorUtils
 
         // Check if the request failed
         if (
+            // A failed transfer reports HTTP code 0, so the second operand returns null whatever this operand is.
+            // @pest-mutate-ignore: FalseToTrue
             $body === false
             || $httpCode !== 200
         ) {
@@ -153,7 +166,12 @@ final class GeneratorUtils
     public static function downloadToFile(
         string $url,
         string $destPath,
+        // A parameter default holds no executable line, so coverage reports it as uncovered although
+        // GeneratorUtilsTest asserts the default `Accept` header reaches the server.
+        // @pest-mutate-ignore: RemoveArrayItem
         array $headers = ['Accept' => 'text/csv,application/csv,*/*'],
+        // The default timeout is not observable: cURL does not report it and a test would wait 120 seconds.
+        // @pest-mutate-ignore: DecrementInteger, IncrementInteger
         int $timeoutSeconds = 120,
         string $userAgent = 'UAMS-Statamic-Enum-Generator/1.0'
     ): bool {
@@ -196,7 +214,11 @@ final class GeneratorUtils
                 CURLOPT_FOLLOWLOCATION => true,
                 CURLOPT_TIMEOUT => $timeoutSeconds,
                 CURLOPT_USERAGENT => $curlUserAgent,
+                // The TLS options cannot be observed: the suite has no TLS endpoint, and the local server speaks plain HTTP.
+                // @pest-mutate-ignore: TrueToFalse, RemoveArrayItem
                 CURLOPT_SSL_VERIFYPEER => true,
+                // The TLS options cannot be observed: the suite has no TLS endpoint, and the local server speaks plain HTTP.
+                // @pest-mutate-ignore: DecrementInteger, IncrementInteger, RemoveArrayItem
                 CURLOPT_SSL_VERIFYHOST => 2,
                 CURLOPT_HTTPHEADER => $headerLines,
             ]
@@ -210,6 +232,8 @@ final class GeneratorUtils
             ) === 200;
 
         // Close the file pointer
+        // Closing the handle early is unobservable: `unset($fp)` below releases it at once.
+        // @pest-mutate-ignore: RemoveFunctionCall
         fclose($fp);
 
         // Clean up variables to free up memory
@@ -296,14 +320,6 @@ final class GeneratorUtils
             $value
         );
 
-        // Remove UTF-16 LE BOM
-        /** @var string $value */
-        $value = \preg_replace(
-            '/^\xFF\xFE/',
-            '',
-            $value
-        );
-
         // Remove UTF-32 BE BOM
         /** @var string $value */
         $value = \preg_replace(
@@ -312,10 +328,18 @@ final class GeneratorUtils
             $value
         );
 
-        // Remove UTF-32 LE BOM
+        // Remove UTF-32 LE BOM, before UTF-16 LE: that mark is a prefix of this one
         /** @var string $value */
         $value = \preg_replace(
             '/^\xFF\xFE\x00\x00/',
+            '',
+            $value
+        );
+
+        // Remove UTF-16 LE BOM
+        /** @var string $value */
+        $value = \preg_replace(
+            '/^\xFF\xFE/',
             '',
             $value
         );

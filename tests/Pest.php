@@ -22,6 +22,7 @@ require_once __DIR__.'/Support/TypeNarrowing.php';
 
 require_once __DIR__.'/Support/MutationScope.php';
 require_once __DIR__.'/Support/ScratchEnumPaths.php';
+require_once __DIR__.'/Support/LocalHttpServer.php';
 
 // The generated enums are excluded from coverage, analysis and refactoring, and from mutation
 // here: a mutation run over the largest of them (`src/ZipCode.php`, 6 MB) never finishes.
