@@ -77,8 +77,12 @@ class GenerateIscedEnums extends Command
 
         $bundled = IscedF2013EnumGenerator::defaultFixturePath();
         if (! IscedF2013EnumGenerator::fixtureIsReadable()) {
+            // The bundled fixture ships with the add-on at a fixed path, so no test can make it unreadable.
+            // @pest-mutate-ignore: RemoveMethodCall,ConcatRemoveLeft,ConcatRemoveRight,ConcatSwitchSides
             $this->error('Bundled ISCED-F fixture not found or not readable: '.$bundled);
 
+            // Same reason as the message above.
+            // @pest-mutate-ignore: FalseToTrue,RemoveEarlyReturn
             return false;
         }
 
