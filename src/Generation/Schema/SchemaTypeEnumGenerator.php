@@ -357,15 +357,17 @@ final class SchemaTypeEnumGenerator
                 foreach ($types as $type) {
                     $normalized = $this->normalizeSchemaId($type);
                     if ($normalized !== null && isset($dataTypeIds[$normalized])) {
-                        // The ids are already added, so carrying on over the remaining types changes nothing
-                        // @pest-mutate-ignore: BreakToContinue
                         $dataTypeIds[$nodeId] = $nodeId;
                         $addedThisPass = true;
+                        // The id is already added, so carrying on over the remaining entries only sets it again
+                        // @pest-mutate-ignore: BreakToContinue
                         break;
                     }
                 }
 
                 if (isset($dataTypeIds[$nodeId])) {
+                    // Stopping the pass here leaves the later nodes to the next one, which the added id guarantees
+                    // @pest-mutate-ignore: ContinueToBreak
                     continue;
                 }
 
@@ -375,10 +377,10 @@ final class SchemaTypeEnumGenerator
                 foreach ($targets as $target) {
                     $targetId = $this->normalizeSchemaId($target);
                     if ($targetId !== null && isset($dataTypeIds[$targetId])) {
-                        // The ids are already added, so carrying on over the remaining types changes nothing
-                        // @pest-mutate-ignore: BreakToContinue
                         $dataTypeIds[$nodeId] = $nodeId;
                         $addedThisPass = true;
+                        // The id is already added, so carrying on over the remaining entries only sets it again
+                        // @pest-mutate-ignore: BreakToContinue
                         break;
                     }
                 }
