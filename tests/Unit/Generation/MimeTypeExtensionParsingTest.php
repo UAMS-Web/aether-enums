@@ -24,6 +24,7 @@ it('keeps the extensions of each registration pattern, in the order the patterns
     'two markers on one line, the later one kept after the earlier' => ['File extension: File extension: a,b', ['file', 'b', 'a']],
     'a marker with only a form feed after it' => ["File extension(s): \f", []],
     'a marker with nothing after it' => ['File extension(s): ', []],
+    'a null byte and a space before the extension' => ["File extension: \0 x", ['x']],
     'trailing spaces after the extension' => ['File extension: exr  ', ['exr']],
     'a dash after a marker that shares its line' => ['File extension: File extension: -', []],
     'a dash line after a marker that shares its line' => ["\nFile extension: File extension: -\n.", []],
