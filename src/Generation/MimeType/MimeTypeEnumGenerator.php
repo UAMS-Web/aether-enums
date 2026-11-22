@@ -1074,15 +1074,19 @@ final class MimeTypeEnumGenerator
     public function parseExtensionsFromIanaPage(
         string $content
     ): array {
-        // Look for "File extension(s):" patterns in the content
-        $patterns = [
+        // Look for "File extension(s):" in the content: the rest of a line that ends in a newline, the rest of the
+        // line, the dotted and comma separated run up to the end of the line, and the rest of the line up to its
+        // break. The first pattern is not redundant: it puts the extensions of a line that ends in a newline ahead of
+        // those of a marker that shares an earlier line with another, and the order is kept.
+        $registrationPatterns = [
+            '/File [Ee]xtensions?(?:\(s\))?\s*:\s*([^\n\r]+),?\s*\n/i',
             '/File [Ee]xtensions?(?:\(s\))?\s*:\s*([^\n\r]+)/i',
+            '/File [Ee]xtensions?(?:\(s\))?\s*:\s*([.a-zA-Z0-9,\s]+?)(?:\n|$)/i',
+            '/File [Ee]xtensions?(?:\(s\))?\s*:\s*([^\n\r]+?)(?:\n|$)/i',
         ];
 
-        // More specific patterns for clean extensions (skip if contains hash symbols)
-        $cleanPatterns = [
-            '/File [Ee]xtensions?(?:\(s\))?\s*:\s*(?!.*#)([a-zA-Z0-9.]+)/i',
-        ];
+        // The fallback: the leading run of letters, digits and dots, unless the line holds a hash symbol
+        $cleanPattern = '/File [Ee]xtensions?(?:\(s\))?\s*:\s*(?!.*#)([a-zA-Z0-9.]+)/i';
 
         // Skip patterns that indicate no extensions
         $skipPatterns = [
@@ -1116,21 +1120,6 @@ final class MimeTypeEnumGenerator
             '/File [Ee]xtensions?(?:\(s\))?\s*:\s*Suggest.*for general purpose/i',
         ];
 
-        // Also try a more specific pattern for extensions with leading dots
-        $dotPatterns = [
-            '/File [Ee]xtensions?(?:\(s\))?\s*:\s*([.a-zA-Z0-9,\s]+?)(?:\n|$)/i',
-        ];
-
-        // Also try a pattern that stops at newlines more precisely
-        $precisePatterns = [
-            '/File [Ee]xtensions?(?:\(s\))?\s*:\s*([^\n\r]+?)(?:\n|$)/i',
-        ];
-
-        // Pattern for extensions that end with comma and newline
-        $trailingCommaPatterns = [
-            '/File [Ee]xtensions?(?:\(s\))?\s*:\s*([^\n\r]+),?\s*\n/i',
-        ];
-
         // Initialize extensions array
         $extensions = [];
 
@@ -1162,237 +1151,38 @@ final class MimeTypeEnumGenerator
             }
         }
 
-        // Loop through the trailing comma patterns (before other patterns)
-        foreach ($trailingCommaPatterns as $pattern) {
-            // Check if pattern matches content
-            if (
-                preg_match_all(
-                    $pattern,
-                    $content,
-                    $matches,
-                    PREG_SET_ORDER
-                )
-            ) {
-                // Loop through pattern matches
-                foreach ($matches as $match) {
-                    $extensionText = \trim($match[1]);
-                    // Check if extension text is empty or whitespace only
-                    if ($extensionText === '') {
-                        // Skip empty extension text
-                        continue;
-                    }
-
-                    if (\preg_match(
-                        '/^\s*$/',
-                        $extensionText
-                    )) {
-                        // Skip empty extension text
-                        continue;
-                    }
-
-                    // Parse the extensions from the text
-                    $parsedExtensions = $this->parseExtensionText($extensionText);
-
-                    // Check if parsed extensions were found
-                    if ($parsedExtensions !== []) {
-                        // Merge parsed extensions into extensions array
-                        $extensions = \array_merge(
-                            $extensions,
-                            $parsedExtensions
-                        );
-                    }
-                }
-            }
+        // The patterns in the order their matches are kept: a match of a later pattern is dropped when an earlier one
+        // produced the same extension
+        foreach ($registrationPatterns as $registrationPattern) {
+            $extensions = array_merge($extensions, $this->extensionsMatching($registrationPattern, $content));
         }
 
-        // Loop through the main patterns
-        foreach ($patterns as $pattern) {
-            // Check if pattern matches content
-            if (
-                preg_match_all(
-                    $pattern,
-                    $content,
-                    $matches,
-                    PREG_SET_ORDER
-                )
-            ) {
-                // Loop through pattern matches
-                foreach ($matches as $match) {
-                    // Extract and trim extension text from match
-                    $extensionText = \trim($match[1]);
-                    // Check if extension text is empty or whitespace only
-                    if ($extensionText === '') {
-                        // Skip empty extension text
-                        continue;
-                    }
-
-                    if (\preg_match(
-                        '/^\s*$/',
-                        $extensionText
-                    )) {
-                        // Skip empty extension text
-                        continue;
-                    }
-
-                    // Parse the extensions from the text
-                    $parsedExtensions = $this->parseExtensionText($extensionText);
-
-                    // Check if parsed extensions were found
-                    if ($parsedExtensions !== []) {
-                        // Merge parsed extensions into extensions array
-                        $extensions = \array_merge(
-                            $extensions,
-                            $parsedExtensions
-                        );
-                    }
-                }
-            }
-        }
-
-        // Loop through the dot patterns
-        foreach ($dotPatterns as $pattern) {
-            // Check if pattern matches content
-            if (
-                preg_match_all(
-                    $pattern,
-                    $content,
-                    $matches,
-                    PREG_SET_ORDER
-                )
-            ) {
-                // Loop through pattern matches
-                foreach ($matches as $match) {
-                    // Extract and trim extension text from match
-                    $extensionText = \trim($match[1]);
-                    // Check if extension text is empty or whitespace only
-                    if ($extensionText === '') {
-                        // Skip empty extension text
-                        continue;
-                    }
-
-                    if (\preg_match(
-                        '/^\s*$/',
-                        $extensionText
-                    )) {
-                        // Skip empty extension text
-                        continue;
-                    }
-
-                    // Parse the extensions from the text
-                    $parsedExtensions = $this->parseExtensionText($extensionText);
-
-                    // Check if parsed extensions were found
-                    if ($parsedExtensions !== []) {
-                        // Merge parsed extensions into extensions array
-                        $extensions = \array_merge(
-                            $extensions,
-                            $parsedExtensions
-                        );
-                    }
-                }
-            }
-        }
-
-        // Loop through the precise patterns
-        foreach ($precisePatterns as $pattern) {
-            // Check if pattern matches content
-            if (
-                preg_match_all(
-                    $pattern,
-                    $content,
-                    $matches,
-                    PREG_SET_ORDER
-                )
-            ) {
-                // Loop through pattern matches
-                foreach ($matches as $match) {
-                    // Extract and trim extension text from match
-                    $extensionText = \trim($match[1]);
-                    // Check if extension text is empty or whitespace only
-                    if ($extensionText === '') {
-                        // Skip empty extension text
-                        continue;
-                    }
-
-                    if (\preg_match(
-                        '/^\s*$/',
-                        $extensionText
-                    )) {
-                        // Skip empty extension text
-                        continue;
-                    }
-
-                    // Parse the extensions from the text
-                    $parsedExtensions = $this->parseExtensionText($extensionText);
-
-                    // Check if parsed extensions were found
-                    if ($parsedExtensions !== []) {
-                        // Merge parsed extensions into extensions array
-                        $extensions = \array_merge(
-                            $extensions,
-                            $parsedExtensions
-                        );
-                    }
-                }
-            }
-        }
-
-        // Check if no extensions were found yet
+        // Fall back to the clean pattern when the main pattern produced nothing
         if ($extensions === []) {
-            // Loop through clean patterns as fallback
-            foreach ($cleanPatterns as $pattern) {
-                // Check if pattern matches content
-                if (
-                    preg_match_all(
-                        $pattern,
-                        $content,
-                        $matches,
-                        PREG_SET_ORDER
-                    )
-                ) {
-                    // Loop through pattern matches
-                    foreach ($matches as $match) {
-                        // Extract and trim extension text from match
-                        $extensionText = \trim($match[1]);
-                        // Check if extension text is empty or whitespace only
-                        if ($extensionText === '') {
-                            // Skip empty extension text
-                            continue;
-                        }
-
-                        if (\preg_match(
-                            '/^\s*$/',
-                            $extensionText
-                        )) {
-                            // Skip empty extension text
-                            continue;
-                        }
-
-                        // Parse the extensions from the text
-                        $parsedExtensions = $this->parseExtensionText($extensionText);
-
-                        // Check if parsed extensions were found
-                        if ($parsedExtensions !== []) {
-                            // Merge parsed extensions into extensions array
-                            $extensions = \array_merge(
-                                $extensions,
-                                $parsedExtensions
-                            );
-                        }
-                    }
-                }
-            }
+            $extensions = $this->extensionsMatching($cleanPattern, $content);
         }
 
         // Remove duplicates and normalize
-        $extensions = array_unique(
-            \array_map(
-                strtolower(...),
-                $extensions
-            )
-        );
+        return array_unique(\array_map(strtolower(...), $extensions));
+    }
 
-        // Return parsed extensions array
+    /**
+     * Parse the extensions out of every match of a "File extension(s):" pattern.
+     *
+     * @param  string  $pattern  A pattern whose first group holds the extension text
+     * @param  string  $content  The HTML content from the IANA detail page
+     * @return list<string> The extensions, with repeats
+     */
+    private function extensionsMatching(string $pattern, string $content): array
+    {
+        preg_match_all($pattern, $content, $matches, PREG_SET_ORDER);
+
+        $extensions = [];
+        foreach ($matches as $match) {
+            // parseExtensionText() returns no extension for a blank text, so a blank match needs no guard
+            $extensions = array_merge($extensions, $this->parseExtensionText(\trim($match[1])));
+        }
+
         return $extensions;
     }
 
@@ -1407,28 +1197,6 @@ final class MimeTypeEnumGenerator
         string $extensionText
     ): array {
         $extensions = [];
-
-        // Check if extension text matches "not applicable" patterns
-        if (
-            \preg_match(
-                '/^(not applicable|NOT APPLICABLE|Not applicable|Not Applicable|None|none|NONE|N\/A|n\/a|N\/A|Unknown|unknown|UNKNOWN|Undefined|undefined|UNDEFINED)\.?$/i',
-                $extensionText
-            )
-        ) {
-            // Return empty array for not applicable cases
-            return $extensions;
-        }
-
-        // Check if extension text is just a dash
-        if (
-            \preg_match(
-                '/^\s*-\s*$/s',
-                $extensionText
-            )
-        ) {
-            // Return empty array for dash-only text
-            return $extensions;
-        }
 
         // Check if extension text contains non-standard parenthetical structures
         if (
@@ -1493,12 +1261,6 @@ final class MimeTypeEnumGenerator
             // Trim whitespace from part
             $part = \trim($part);
 
-            // Check if part is empty after trimming
-            if ($part === '') {
-                // Skip empty parts
-                continue;
-            }
-
             // Check if part is just a dash
             if (
                 \preg_match(
@@ -1560,7 +1322,7 @@ final class MimeTypeEnumGenerator
                     // Generate extensions for digits 0-9
                     for ($i = 0; $i <= 9; $i++) {
                         // Add numbered extension variant
-                        $extensions[] = \strtolower($baseExtension.$i);
+                        $extensions[] = $baseExtension.$i;
                     }
                 } else { // Otherwise
                     // Add single extension from wildcard
@@ -1569,17 +1331,6 @@ final class MimeTypeEnumGenerator
                 }
 
                 // Skip to next part after processing wildcard
-                continue;
-            }
-
-            // Check for certain wildcard patterns that are non-standard
-            if (
-                \preg_match(
-                    '/^\*\.(finf|jpm|jpgm)$/',
-                    $part
-                )
-            ) {
-                // Skip non-standard wildcard patterns
                 continue;
             }
 
@@ -1692,17 +1443,6 @@ final class MimeTypeEnumGenerator
                 continue;
             }
 
-            // Check if the extension contains spaces (likely not a valid extension)
-            if (
-                str_contains(
-                    $extension,
-                    ' '
-                )
-            ) {
-                // Skip extensions with spaces
-                continue;
-            }
-
             // Check if the original part contained spaces (for cases like "invalid extension")
             if (
                 str_contains(
@@ -1734,17 +1474,6 @@ final class MimeTypeEnumGenerator
             // Check if the extension is "n/a" (not applicable)
             if (\strtolower($extension) === 'n/a') {
                 // Skip not applicable extensions
-                continue;
-            }
-
-            // Check if the extension contains hash symbols (likely not a valid extension)
-            if (
-                str_contains(
-                    $extension,
-                    '#'
-                )
-            ) {
-                // Skip extensions with hash symbols
                 continue;
             }
 
