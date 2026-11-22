@@ -31,7 +31,7 @@ if (! function_exists('withLocalHttpServer')) {
         $port = (int) substr((string) strrchr((string) stream_socket_get_name($probe, false), ':'), 1);
         fclose($probe);
 
-        $root = sys_get_temp_dir().DIRECTORY_SEPARATOR.'local-http-'.bin2hex(random_bytes(6));
+        $root = sys_get_temp_dir().DIRECTORY_SEPARATOR.'local-http-'.md5(uniqid('', true));
         mkdir($root);
         $router = $root.DIRECTORY_SEPARATOR.'router.php';
         file_put_contents($router, <<<'PHP_WRAP'

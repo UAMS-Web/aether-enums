@@ -83,7 +83,7 @@ function generatorUtilsGet(string $path, ?array $custom = null): ?string
  */
 function generatorUtilsDownload(Closure $callback): mixed
 {
-    $dir = sys_get_temp_dir().DIRECTORY_SEPARATOR.'download-'.bin2hex(random_bytes(6));
+    $dir = sys_get_temp_dir().DIRECTORY_SEPARATOR.'download-'.md5(uniqid('', true));
     mkdir($dir);
 
     try {
@@ -194,7 +194,7 @@ it('returns false when the destination cannot be opened', function (): void {
     set_error_handler(static fn (): bool => true);
 
     try {
-        $result = GeneratorUtils::downloadToFile('http://127.0.0.1:1/never', sys_get_temp_dir().DIRECTORY_SEPARATOR.'no-such-dir-'.bin2hex(random_bytes(4)).DIRECTORY_SEPARATOR.'out.txt');
+        $result = GeneratorUtils::downloadToFile('http://127.0.0.1:1/never', sys_get_temp_dir().DIRECTORY_SEPARATOR.'no-such-dir-'.md5(uniqid('', true)).DIRECTORY_SEPARATOR.'out.txt');
     } finally {
         restore_error_handler();
     }
