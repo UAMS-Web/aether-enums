@@ -63,6 +63,7 @@ function mimeTypeMimeDbJson(): string
  * Answer the downloads of a generator run, and record each request.
  *
  * @param  list<array{url: string, headers: array<string, string>, timeout: int}>  $requests
+ * @return Closure(string, array<mixed>, int): ?string
  */
 function mimeTypeAnswers(array &$requests): Closure
 {
