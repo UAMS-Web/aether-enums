@@ -147,11 +147,9 @@ final class ZipCodeEnumGenerator
                 $case
             );
 
-            // Advise GC in long-running loop. It only frees memory, so the
-            // RemoveFunctionCall mutant is equivalent. It is not annotated: that mutator
-            // removes this statement itself, a marker above a statement reaches only its
-            // children, and the trailing marker that would reach it is inert on Windows,
-            // where the plugin's line map does not work.
+            // Advise GC in long-running loop. It only frees memory, so the RemoveFunctionCall
+            // mutant is equivalent.
+            // @pest-mutate-ignore: RemoveFunctionCall
             gc_collect_cycles();
         }
 
@@ -601,10 +599,8 @@ final class ZipCodeEnumGenerator
             }
 
             // Force garbage collection after each state. It only frees memory, so the
-            // RemoveFunctionCall mutant is equivalent. It is not annotated: that mutator
-            // removes this statement itself, a marker above a statement reaches only its
-            // children, and the trailing marker that would reach it is inert on Windows,
-            // where the plugin's line map does not work.
+            // RemoveFunctionCall mutant is equivalent.
+            // @pest-mutate-ignore: RemoveFunctionCall
             gc_collect_cycles();
 
             // Clean up variables to free up memory
@@ -862,12 +858,9 @@ final class ZipCodeEnumGenerator
                             // Reset the current chunk
                             $currentChunk = [];
 
-                            // Force garbage collection after each chunk. It only frees
-                            // memory, so the RemoveFunctionCall mutant is equivalent. It is
-                            // not annotated: that mutator removes this statement itself, a
-                            // marker above a statement reaches only its children, and the
-                            // trailing marker that would reach it is inert on Windows, where
-                            // the plugin's line map does not work.
+                            // Force garbage collection after each chunk. It only frees memory,
+                            // so the RemoveFunctionCall mutant is equivalent.
+                            // @pest-mutate-ignore: RemoveFunctionCall
                             gc_collect_cycles();
 
                             // Check if we should stop processing
@@ -894,10 +887,8 @@ final class ZipCodeEnumGenerator
         }
 
         // Close file handle. PHP closes it anyway when the function returns, so the
-        // RemoveFunctionCall mutant is equivalent. It is not annotated: that mutator
-        // removes this statement itself, a marker above a statement reaches only its
-        // children, and the trailing marker that would reach it is inert on Windows,
-        // where the plugin's line map does not work.
+        // RemoveFunctionCall mutant is equivalent.
+        // @pest-mutate-ignore: RemoveFunctionCall
         fclose($handle);
 
         // ---

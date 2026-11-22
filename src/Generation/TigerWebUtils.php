@@ -217,10 +217,9 @@ class TigerWebUtils
             $json,
         );
 
-        // Hint the GC since this can process thousands of features. It only frees memory, so the
-        // RemoveFunctionCall mutant is equivalent. It is not annotated: that mutator removes this
-        // statement itself, a marker above a statement reaches only its children, and the trailing
-        // marker that would reach it is inert on Windows, where the plugin's line map does not work.
+        // Hint the GC since this can process thousands of features. It only frees memory, so
+        // the RemoveFunctionCall mutant is equivalent.
+        // @pest-mutate-ignore: RemoveFunctionCall
         gc_collect_cycles();
 
         // Return the list of attribute arrays for downstream mapping

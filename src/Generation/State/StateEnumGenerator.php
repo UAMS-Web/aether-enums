@@ -133,12 +133,9 @@ final class StateEnumGenerator
                     $geoId
                 );
 
-                // Long‑running loop: hint GC to control memory footprint
-                // Only frees memory, so the RemoveFunctionCall mutant is equivalent. It
-                // is not annotated: that mutator removes this statement itself, a marker
-                // above a statement reaches only its children, and the trailing marker
-                // that would reach it is inert on Windows, where the plugin's line map
-                // does not work.
+                // Long‑running loop: hint GC to control memory footprint Only frees memory,
+                // so the RemoveFunctionCall mutant is equivalent.
+                // @pest-mutate-ignore: RemoveFunctionCall
                 gc_collect_cycles();
 
                 // Move on to the next record
@@ -189,12 +186,9 @@ final class StateEnumGenerator
                 $caseId
             );
 
-            // Long‑running loop: hint GC to control memory footprint
-            // Only frees memory, so the RemoveFunctionCall mutant is equivalent. It
-            // is not annotated: that mutator removes this statement itself, a marker
-            // above a statement reaches only its children, and the trailing marker
-            // that would reach it is inert on Windows, where the plugin's line map
-            // does not work.
+            // Long‑running loop: hint GC to control memory footprint Only frees memory, so
+            // the RemoveFunctionCall mutant is equivalent.
+            // @pest-mutate-ignore: RemoveFunctionCall
             gc_collect_cycles();
         }
 
