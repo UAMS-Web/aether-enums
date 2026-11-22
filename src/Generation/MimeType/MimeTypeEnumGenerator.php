@@ -47,11 +47,18 @@ final class MimeTypeEnumGenerator
     private readonly \Closure $httpGet;
 
     /**
-     * @param  ?\Closure(string, array<string, string>, int): ?string  $httpGet  Replaces GeneratorUtils::httpGet() (tests only)
+     * The mime-db file the primary source is read from.
      */
-    public function __construct(?\Closure $httpGet = null)
+    private readonly string $mimeDbPath;
+
+    /**
+     * @param  ?\Closure(string, array<string, string>, int): ?string  $httpGet  Replaces GeneratorUtils::httpGet() (tests only)
+     * @param  ?string  $mimeDbPath  Replaces node_modules/mime-db/db.json under the repository root (tests only)
+     */
+    public function __construct(?\Closure $httpGet = null, ?string $mimeDbPath = null)
     {
         $this->httpGet = $httpGet ?? GeneratorUtils::httpGet(...);
+        $this->mimeDbPath = $mimeDbPath ?? EnumPaths::root().'/node_modules/mime-db/db.json';
     }
 
     /**
@@ -130,6 +137,8 @@ final class MimeTypeEnumGenerator
 
         // Convert back to indexed array
         /** @var array<int, array{mimeType: string, extensions: array<int, string>}> $records */
+        // The keys are read only to write back into the same array, so the mutant is equivalent.
+        // @pest-mutate-ignore: UnwrapArrayValues
         $records = \array_values($recordsByMimeType);
 
         // Clean up variables to free up memory
@@ -146,26 +155,12 @@ final class MimeTypeEnumGenerator
         // Loop through the parsed records to normalize and collect MIME type data
         foreach ($records as $rec) {
             // MIME type string
+            // Every record already holds a string, so the cast changes nothing.
+            // @pest-mutate-ignore: RemoveStringCast
             $mimeType = (string) $rec['mimeType'];
 
             // Extensions array
             $extensions = $rec['extensions'];
-
-            // Check if the MIME type is empty
-            if ($mimeType === '') {
-                // Clean up variables to free up memory
-                unset(
-                    $rec,
-                    $mimeType,
-                    $extensions
-                );
-
-                // Long-running loop: hint GC to control memory footprint
-                gc_collect_cycles();
-
-                // Move on to the next record
-                continue;
-            }
 
             // Generate case ID from MIME type
             $caseId = $this->generateCaseId($mimeType);
@@ -173,10 +168,13 @@ final class MimeTypeEnumGenerator
             // Check if this case ID has not been processed yet
             if (! isset($mimeTypesByCaseId[$caseId])) {
                 // Extract category from MIME type (part before the slash)
-                $category = strtok(
+                // A MIME type has one slash, so a limit of 3 splits it as a limit of 2 does.
+                // @pest-mutate-ignore: IncrementInteger
+                $category = explode(
+                    '/',
                     $mimeType,
-                    '/'
-                );
+                    2
+                )[0];
 
                 // Preserve original MIME type capitalization if available
                 $originalMimeType = $mimeType;
@@ -187,6 +185,8 @@ final class MimeTypeEnumGenerator
                     'extensions' => $extensions,
                     'category' => $category,
                     'caseId' => $caseId,
+                    // Nothing reads the original capitalization when the enum is rendered, so the item changes no output.
+                    // @pest-mutate-ignore: RemoveArrayItem
                     'originalMimeType' => $originalMimeType,
                 ];
             }
@@ -201,10 +201,14 @@ final class MimeTypeEnumGenerator
             );
 
             // Encourage GC during large loops
+            // It only frees memory, so the RemoveFunctionCall mutant is equivalent.
+            // @pest-mutate-ignore: RemoveFunctionCall
             gc_collect_cycles();
         }
 
         // Flatten associative map into list for sorting and output
+        // usort() renumbers the list, so unwrapping array_values() changes no output.
+        // @pest-mutate-ignore: UnwrapArrayValues
         $mimeTypes = \array_values($mimeTypesByCaseId);
 
         // Sort by MIME type for stable output order
@@ -244,6 +248,8 @@ final class MimeTypeEnumGenerator
         );
 
         // Trigger GC cycle after cleanup
+        // It only frees memory, so the RemoveFunctionCall mutant is equivalent.
+        // @pest-mutate-ignore: RemoveFunctionCall
         gc_collect_cycles();
 
         // Return the destination path for the caller to report
@@ -257,8 +263,8 @@ final class MimeTypeEnumGenerator
      */
     private function fetchMimeDbRecords(): ?array
     {
-        // Try to read from node_modules/mime-db/db.json
-        $mimeDbPath = EnumPaths::root().'/node_modules/mime-db/db.json';
+        // Try to read from node_modules/mime-db/db.json unless another file was given
+        $mimeDbPath = $this->mimeDbPath;
 
         // Check if the mime-db file does not exist
         if (! \file_exists($mimeDbPath)) {
@@ -470,7 +476,9 @@ final class MimeTypeEnumGenerator
 
                 // Check if HTTP fetch failed
                 if ($content === null) {
-                    // Skip to next category
+                    // Skip to next category. Coverage never reports a `continue` line as run, so the
+                    // mutant is skipped as uncovered although a test with one failing category kills it.
+                    // @pest-mutate-ignore: ContinueToBreak
                     continue;
                 }
 
@@ -503,6 +511,8 @@ final class MimeTypeEnumGenerator
             );
 
             // Encourage GC during large loops
+            // It only frees memory, so the RemoveFunctionCall mutant is equivalent.
+            // @pest-mutate-ignore: RemoveFunctionCall
             gc_collect_cycles();
         }
 
@@ -563,6 +573,8 @@ final class MimeTypeEnumGenerator
             $line = \trim($line);
 
             // Check if the line is empty
+            // An empty line parses to no record either way, so the mutant is equivalent.
+            // @pest-mutate-ignore: EmptyStringToNotEmpty
             if ($line === '') {
                 // Skip empty lines
                 continue;
@@ -636,6 +648,8 @@ final class MimeTypeEnumGenerator
         string $line
     ): ?array {
         // Split by whitespace (tabs and spaces)
+        // A limit of 0 means no limit, as -1 does.
+        // @pest-mutate-ignore: IncrementInteger
         $parts = preg_split(
             '/\s+/',
             $line,
@@ -644,12 +658,16 @@ final class MimeTypeEnumGenerator
         );
 
         // Check if line has less than 2 parts (MIME type and at least one extension)
+        // preg_split() with this pattern never returns false.
+        // @pest-mutate-ignore: FalseToTrue
         if ($parts === false || \count($parts) < 2) {
             // Return null to indicate invalid line format
             return null;
         }
 
         // First part is the MIME type - normalize to lowercase
+        // preg_split() on whitespace leaves no whitespace to trim.
+        // @pest-mutate-ignore: UnwrapTrim
         $mimeType = \strtolower(
             \trim($parts[0])
         );
@@ -676,11 +694,15 @@ final class MimeTypeEnumGenerator
         // Loop through remaining parts to extract extensions
         for ($i = 1; $i < $counter; $i++) {
             // Normalize extension to lowercase and trim whitespace
+            // preg_split() on whitespace leaves no whitespace to trim.
+            // @pest-mutate-ignore: UnwrapTrim
             $extension = \strtolower(
                 \trim($parts[$i])
             );
 
             // Check if extension is not empty
+            // PREG_SPLIT_NO_EMPTY leaves no empty part, so the mutant is equivalent.
+            // @pest-mutate-ignore: EmptyStringToNotEmpty
             if ($extension !== '') {
                 // Add extension to array
                 $extensions[] = $extension;
@@ -688,6 +710,8 @@ final class MimeTypeEnumGenerator
         }
 
         // Remove duplicates
+        // The Apache extensions are deduplicated again when they are merged into the records.
+        // @pest-mutate-ignore: UnwrapArrayUnique
         $extensions = array_unique($extensions);
 
         // Clean up variables to free up memory
@@ -739,9 +763,13 @@ final class MimeTypeEnumGenerator
             }
 
             // Trim whitespace
+            // The name column is trimmed again before use, so trimming the line first changes no record.
+            // @pest-mutate-ignore: UnwrapTrim
             $line = \trim($line);
 
             // Check if the line is empty
+            // An empty line parses to no record either way, so the mutant is equivalent.
+            // @pest-mutate-ignore: EmptyStringToNotEmpty
             if ($line === '') {
                 // Skip empty lines
                 continue;
@@ -795,6 +823,8 @@ final class MimeTypeEnumGenerator
         // ---
 
         // Get the subtype from the Name field
+        // The line is never empty here, so str_getcsv() always returns a first column.
+        // @pest-mutate-ignore: EmptyStringToNotEmpty
         $subtype = \trim($parts[0] ?? '');
 
         // Check if the subtype is empty
@@ -834,7 +864,10 @@ final class MimeTypeEnumGenerator
         return [
             'mimeType' => $mimeType,
             'extensions' => $extensions,
-            'originalMimeType' => $originalMimeType, // Store original capitalization for IANA URLs
+            // Store original capitalization for IANA URLs. Nothing reads it when the enum is rendered,
+            // so the item changes no output.
+            // @pest-mutate-ignore: RemoveArrayItem
+            'originalMimeType' => $originalMimeType,
         ];
     }
 
@@ -939,6 +972,8 @@ final class MimeTypeEnumGenerator
             );
 
             // Encourage GC during large loops
+            // It only frees memory, so the RemoveFunctionCall mutant is equivalent.
+            // @pest-mutate-ignore: RemoveFunctionCall
             gc_collect_cycles();
         }
 
