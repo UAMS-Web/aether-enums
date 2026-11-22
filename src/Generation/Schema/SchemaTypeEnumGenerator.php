@@ -25,6 +25,20 @@ use UAMSWeb\Aether\Enums\Generation\EnumPaths;
  */
 final class SchemaTypeEnumGenerator
 {
+    /**
+     * Words PHP will not accept as an enum case name, in lower case.
+     *
+     * @var list<string>
+     */
+    private const array RESERVED_WORDS = [
+        'class', 'default', 'case', 'enum', 'and', 'or', 'try', 'catch', 'finally', 'switch', 'match', 'return',
+        'extends', 'implements', 'interface', 'trait', 'new', 'clone', 'instanceof', 'insteadof', 'as', 'goto',
+        'const', 'static', 'abstract', 'final', 'private', 'protected', 'public', 'readonly', 'fn', 'function', 'if',
+        'else', 'elseif', 'endif', 'for', 'endfor', 'foreach', 'endforeach', 'while', 'endwhile', 'do', 'break',
+        'continue', 'declare', 'enddeclare', 'print', 'echo', 'require', 'require_once', 'include', 'include_once', 'list',
+        'unset', 'isset', 'empty', 'die', 'exit', 'eval', 'yield', 'from', 'var', 'null', 'true', 'false',
+    ];
+
     private const string ENUM_PATH = 'SchemaType.php';
 
     private const string SCHEMA_PROPERTY_ENUM_PATH = 'SchemaProperty.php';
@@ -123,11 +137,11 @@ final class SchemaTypeEnumGenerator
         $typeNames = $this->collectTypeNames($graph);
         // Exclude DataType and its subclasses so they only appear in SchemaDataType.
         $typeNames = array_values(array_diff($typeNames, $dataTypeNames));
-        sort($typeNames);
+
         $typeParents = $this->buildTypeParents($graph, $typeNames);
         $typeChildren = $this->buildTypeChildren($typeParents);
-        $typeAncestors = $this->buildTransitiveClosure($typeNames, $typeParents, false);
-        $typeDescendants = $this->buildTransitiveClosure($typeNames, $typeChildren, false);
+        $typeAncestors = $this->buildTransitiveClosure($typeNames, $typeParents);
+        $typeDescendants = $this->buildTransitiveClosure($typeNames, $typeChildren);
 
         $enumerationTypeNames = $this->collectEnumerationTypeNames($typeNames, $typeAncestors);
         $memberToTypes = $this->collectEnumerationMembersFromGraph($graph, $enumerationTypeNames);
@@ -191,6 +205,8 @@ final class SchemaTypeEnumGenerator
         File::put($typePath, $schemaTypePhp);
 
         $cacheWarmed = false;
+        // Calling warm() on a missing warmer throws an Error, which the catch below swallows, so the guard is only a shortcut
+        // @pest-mutate-ignore: InstanceOfToTrue
         if ($this->aliasCacheWarmer instanceof AliasCacheWarmer) {
             try {
                 $this->aliasCacheWarmer->warm($typeNames);
@@ -231,12 +247,21 @@ final class SchemaTypeEnumGenerator
      */
     private static function readUrlOverHttp(string $url): ?string
     {
+        // Both options are PHP's defaults (default_socket_timeout is 60, follow_location is on), so the options only state them
         $context = stream_context_create([
+            // Equivalent to the default
+            // @pest-mutate-ignore: RemoveArrayItem
             'http' => [
+                // The default socket timeout is 60 seconds
+                // @pest-mutate-ignore: DecrementInteger,IncrementInteger,RemoveArrayItem
                 'timeout' => 60,
+                // Redirects are followed by default
+                // @pest-mutate-ignore: RemoveArrayItem
                 'follow_location' => true,
             ],
         ]);
+        // An http URL is never searched in the include path, so that flag changes nothing
+        // @pest-mutate-ignore: FalseToTrue
         $raw = @file_get_contents($url, false, $context);
 
         return $raw === false ? null : $raw;
@@ -276,14 +301,15 @@ final class SchemaTypeEnumGenerator
         }
 
         if (str_starts_with($id, 'schema:')) {
-            return substr($id, 7);
+            $local = substr($id, 7);
+        } elseif (str_contains($id, 'schema.org/')) {
+            $local = substr($id, strrpos($id, '/') + 1);
+        } else {
+            return null;
         }
 
-        if (str_contains($id, 'schema.org/')) {
-            return substr($id, strrpos($id, '/') + 1);
-        }
-
-        return null;
+        // An id that ends where the name would start names nothing
+        return $local === '' ? null : $local;
     }
 
     /**
@@ -294,12 +320,9 @@ final class SchemaTypeEnumGenerator
      */
     private function normalizeSchemaId($id): ?string
     {
-        $local = $this->schemaLocalName(\is_array($id) && isset($id['@id']) ? $id['@id'] : $id);
-        if ($local === null || $local === '') {
-            return null;
-        }
+        $local = $this->schemaLocalName($id);
 
-        return 'schema:'.$local;
+        return $local === null ? null : 'schema:'.$local;
     }
 
     /**
@@ -313,11 +336,10 @@ final class SchemaTypeEnumGenerator
      */
     private function collectDataTypeNamesFromGraph(array $graph): array
     {
-        $dataTypeIds = ['schema:DataType' => true];
+        $dataTypeIds = ['schema:DataType' => 'schema:DataType'];
 
-        $maxIterations = count($graph) + 1;
-        $iterations = 0;
-        while (true) {
+        // Each pass that adds an id adds one that was not in the set, so the loop ends after at most one pass per node
+        do {
             $addedThisPass = false;
             foreach ($graph as $node) {
                 $nodeId = $this->normalizeSchemaId($node['@id'] ?? null);
@@ -335,7 +357,9 @@ final class SchemaTypeEnumGenerator
                 foreach ($types as $type) {
                     $normalized = $this->normalizeSchemaId($type);
                     if ($normalized !== null && isset($dataTypeIds[$normalized])) {
-                        $dataTypeIds[$nodeId] = true;
+                        // The ids are already added, so carrying on over the remaining types changes nothing
+                        // @pest-mutate-ignore: BreakToContinue
+                        $dataTypeIds[$nodeId] = $nodeId;
                         $addedThisPass = true;
                         break;
                     }
@@ -351,29 +375,21 @@ final class SchemaTypeEnumGenerator
                 foreach ($targets as $target) {
                     $targetId = $this->normalizeSchemaId($target);
                     if ($targetId !== null && isset($dataTypeIds[$targetId])) {
-                        $dataTypeIds[$nodeId] = true;
+                        // The ids are already added, so carrying on over the remaining types changes nothing
+                        // @pest-mutate-ignore: BreakToContinue
+                        $dataTypeIds[$nodeId] = $nodeId;
                         $addedThisPass = true;
                         break;
                     }
                 }
             }
 
-            if (! $addedThisPass) {
-                break;
-            }
-
-            $iterations++;
-            if ($iterations >= $maxIterations) {
-                break;
-            }
-        }
+        } while ($addedThisPass);
 
         $localNames = [];
-        foreach (array_keys($dataTypeIds) as $id) {
-            $local = $this->schemaLocalName($id);
-            if ($local !== null && $local !== '') {
-                $localNames[] = $local;
-            }
+        foreach ($dataTypeIds as $id) {
+            // Every id in the set is "schema:" and a name
+            $localNames[] = substr($id, 7);
         }
 
         sort($localNames);
@@ -382,39 +398,18 @@ final class SchemaTypeEnumGenerator
     }
 
     /**
-     * Check if node is a schema.org class (@type rdfs:Class, @id schema:*).
+     * The schema.org local name of a node whose @type includes the given RDF type (rdfs:Class, rdf:Property),
+     * or null when its @id is not a schema.org name or its @type does not include it.
      *
      * @param  array<string, mixed>  $node
      */
-    private function isSchemaClass(array $node): bool
+    private function schemaNodeName(array $node, string $rdfType): ?string
     {
-        $id = $node['@id'] ?? null;
+        $name = $this->schemaLocalName($node['@id'] ?? null);
         $type = $node['@type'] ?? null;
-        if ($this->schemaLocalName($id) === null) {
-            return false;
-        }
-
         $types = \is_array($type) ? $type : [$type];
 
-        return \in_array('rdfs:Class', $types, true);
-    }
-
-    /**
-     * Check if node is a schema.org property (@type rdf:Property, @id schema:*).
-     *
-     * @param  array<string, mixed>  $node
-     */
-    private function isSchemaProperty(array $node): bool
-    {
-        $id = $node['@id'] ?? null;
-        $type = $node['@type'] ?? null;
-        if ($this->schemaLocalName($id) === null) {
-            return false;
-        }
-
-        $types = \is_array($type) ? $type : [$type];
-
-        return \in_array('rdf:Property', $types, true);
+        return \in_array($rdfType, $types, true) ? $name : null;
     }
 
     /**
@@ -427,17 +422,13 @@ final class SchemaTypeEnumGenerator
     {
         $names = [];
         foreach ($graph as $node) {
-            if (! $this->isSchemaClass($node)) {
-                continue;
-            }
-
-            $name = $this->schemaLocalName($node['@id']);
-            if ($name !== null && $name !== '') {
-                $names[$name] = true;
+            $name = $this->schemaNodeName($node, 'rdfs:Class');
+            if ($name !== null) {
+                $names[] = $name;
             }
         }
 
-        $names = array_keys($names);
+        $names = array_unique($names);
         sort($names);
 
         return $names;
@@ -452,23 +443,15 @@ final class SchemaTypeEnumGenerator
      */
     private function buildTypeParents(array $graph, array $typeNames): array
     {
-        $typeSet = array_fill_keys($typeNames, true);
+        $typeSet = array_flip($typeNames);
         $parents = [];
         foreach ($typeNames as $type) {
             $parents[$type] = [];
         }
 
         foreach ($graph as $node) {
-            if (! $this->isSchemaClass($node)) {
-                continue;
-            }
-
-            $type = $this->schemaLocalName($node['@id']);
-            if ($type === null) {
-                continue;
-            }
-
-            if (! isset($typeSet[$type])) {
+            $type = $this->schemaNodeName($node, 'rdfs:Class');
+            if ($type === null || ! isset($typeSet[$type])) {
                 continue;
             }
 
@@ -479,34 +462,18 @@ final class SchemaTypeEnumGenerator
 
             $targets = $this->normalizeIdList($subClassOf);
             foreach ($targets as $targetId) {
-                $parent = $this->resolveToSchemaLocalName($targetId);
+                $parent = $this->schemaLocalName($targetId);
                 if ($parent !== null && isset($typeSet[$parent])) {
                     $parents[$type][] = $parent;
                 }
             }
 
+            // Only iterated afterwards, so the gaps array_unique() leaves are never seen; array_values() keeps the list type
+            // @pest-mutate-ignore: UnwrapArrayValues
             $parents[$type] = array_values(array_unique($parents[$type]));
         }
 
         return $parents;
-    }
-
-    /**
-     * Resolve @id (possibly a reference) to schema local name.
-     *
-     * @param  string|array<string, mixed>  $id
-     */
-    private function resolveToSchemaLocalName($id): ?string
-    {
-        if (\is_array($id) && isset($id['@id'])) {
-            $id = $id['@id'];
-        }
-
-        if (! \is_string($id)) {
-            return null;
-        }
-
-        return $this->schemaLocalName($id);
     }
 
     /**
@@ -517,10 +484,6 @@ final class SchemaTypeEnumGenerator
      */
     private function normalizeIdList($value): array
     {
-        if ($value === null) {
-            return [];
-        }
-
         if (! \is_array($value)) {
             /** @var list<string|array<string, mixed>> $single */
             $single = [$value];
@@ -538,10 +501,8 @@ final class SchemaTypeEnumGenerator
             return $value;
         }
 
-        /** @var array<string, mixed> $value */
-        $object = $value;
-
-        return [$object];
+        // An object with no @id names nothing
+        return [];
     }
 
     /**
@@ -552,19 +513,12 @@ final class SchemaTypeEnumGenerator
      */
     private function extractSingleReferenceLocalName($value): ?string
     {
-        if ($value === null) {
-            return null;
-        }
-
         $ref = $value;
         if (\is_array($value) && isset($value[0]) && \is_array($value[0])) {
             $ref = $value[0];
         }
 
         $id = \is_array($ref) && isset($ref['@id']) ? $ref['@id'] : null;
-        if (! \is_string($id)) {
-            return null;
-        }
 
         return $this->schemaLocalName($id);
     }
@@ -609,11 +563,6 @@ final class SchemaTypeEnumGenerator
             }
         }
 
-        foreach ($children as $type => $list) {
-            $children[$type] = array_values(array_unique($list));
-            sort($children[$type]);
-        }
-
         return $children;
     }
 
@@ -622,17 +571,13 @@ final class SchemaTypeEnumGenerator
      *
      * @param  list<string>  $typeNames
      * @param  array<string, list<string>>  $relation  type => list of direct targets (e.g., parents or children)
-     * @param  bool  $sort  Whether to sort each result list
-     * @return array<string, list<string>>
+     * @return array<string, list<string>> Each list is sorted
      */
-    private function buildTransitiveClosure(array $typeNames, array $relation, bool $sort = true): array
+    private function buildTransitiveClosure(array $typeNames, array $relation): array
     {
         $result = [];
         foreach ($typeNames as $type) {
             $result[$type] = $this->transitiveClosure($type, $relation);
-            if ($sort) {
-                sort($result[$type]);
-            }
         }
 
         return $result;
@@ -646,15 +591,17 @@ final class SchemaTypeEnumGenerator
      */
     private function transitiveClosure(string $start, array $relation): array
     {
-        $seen = [$start => true];
+        $seen = [$start => $start];
         $queue = [$start];
         $out = [];
         while ($queue !== []) {
+            // The result is sorted below, so the order the types are visited in does not show
+            // @pest-mutate-ignore: ArrayShiftToArrayPop
             $current = array_shift($queue);
             $neighbors = $relation[$current] ?? [];
             foreach ($neighbors as $next) {
                 if (! isset($seen[$next])) {
-                    $seen[$next] = true;
+                    $seen[$next] = $next;
                     $out[] = $next;
                     $queue[] = $next;
                 }
@@ -682,7 +629,7 @@ final class SchemaTypeEnumGenerator
             $id = $schemaPrefix.$type;
             $node = $byId[$id] ?? $byId['schema:'.$type] ?? null;
             $comment = $this->commentToPlainText($node['rdfs:comment'] ?? null);
-            $out[$type] = $comment !== null && $comment !== ''
+            $out[$type] = $comment !== null
                 ? $this->descriptionTextToHtml($comment)
                 : null;
         }
@@ -724,12 +671,12 @@ final class SchemaTypeEnumGenerator
         $out = [];
         foreach ($typeNames as $type) {
             $ancestors = $typeAncestors[$type] ?? [];
+            // Type names are never numeric strings that compare equal to Enumeration, so the loose comparison agrees
+            // @pest-mutate-ignore: TrueToFalse
             if (\in_array('Enumeration', $ancestors, true) || $type === 'Enumeration') {
                 $out[] = $type;
             }
         }
-
-        sort($out);
 
         return $out;
     }
@@ -744,56 +691,32 @@ final class SchemaTypeEnumGenerator
      */
     private function collectEnumerationMembersFromGraph(array $graph, array $enumerationTypeNames): array
     {
-        $enumSet = array_fill_keys($enumerationTypeNames, true);
+        $enumSet = array_flip($enumerationTypeNames);
         $memberToTypes = [];
         foreach ($graph as $node) {
-            $id = $node['@id'] ?? null;
-            $memberName = $this->schemaLocalName($id);
+            $memberName = $this->schemaLocalName($node['@id'] ?? null);
             if ($memberName === null) {
                 continue;
             }
 
-            if ($memberName === '') {
-                continue;
-            }
-
             $typeRaw = $node['@type'] ?? null;
-            if ($typeRaw === null) {
-                continue;
-            }
-
             $types = \is_array($typeRaw) ? $typeRaw : [$typeRaw];
             if (\in_array('rdfs:Class', $types, true)) {
                 continue;
             }
 
-            $enumerationTypes = [];
             foreach ($types as $t) {
-                $resolved = $this->normalizeSchemaId($t);
-                if ($resolved === null) {
-                    continue;
-                }
-
-                $local = $this->schemaLocalName($resolved);
+                $local = $this->schemaLocalName($t);
                 if ($local !== null && isset($enumSet[$local])) {
-                    $enumerationTypes[] = $local;
+                    $memberToTypes[$memberName][] = $local;
                 }
             }
+        }
 
-            if ($enumerationTypes === []) {
-                continue;
-            }
-
-            $enumerationTypes = array_values(array_unique($enumerationTypes));
-            sort($enumerationTypes);
-            if (isset($memberToTypes[$memberName])) {
-                $memberToTypes[$memberName] = array_values(
-                    array_unique(array_merge($memberToTypes[$memberName], $enumerationTypes))
-                );
-                sort($memberToTypes[$memberName]);
-            } else {
-                $memberToTypes[$memberName] = $enumerationTypes;
-            }
+        foreach ($memberToTypes as $member => $list) {
+            $names = array_unique($list);
+            sort($names);
+            $memberToTypes[$member] = $names;
         }
 
         return $memberToTypes;
@@ -815,8 +738,7 @@ final class SchemaTypeEnumGenerator
             }
         }
 
-        foreach ($typeToMembers as $type => $members) {
-            $typeToMembers[$type] = array_values(array_unique($members));
+        foreach (array_keys($typeToMembers) as $type) {
             sort($typeToMembers[$type]);
         }
 
@@ -838,7 +760,7 @@ final class SchemaTypeEnumGenerator
         foreach ($memberNames as $name) {
             $node = $byId['schema:'.$name] ?? $byId[$schemaPrefix.$name] ?? null;
             $comment = $this->commentToPlainText($node['rdfs:comment'] ?? null);
-            $out[$name] = $comment !== null && $comment !== ''
+            $out[$name] = $comment !== null
                 ? $this->descriptionTextToHtml($comment)
                 : null;
         }
@@ -960,7 +882,7 @@ PHP;
             $comment = $memberDescriptions[$name] ?? null;
             $attr = $this->formatSchemaEnumerationMemberInfoAttribute($types, $comment);
             $lines[] = '    '.$attr;
-            $lines[] = '    case '.$this->enumCaseName($name).' = '.var_export($name, true).';';
+            $lines[] = '    case '.$this->caseName($name, 'Type').' = '.var_export($name, true).';';
         }
 
         return implode("\n", $lines);
@@ -975,7 +897,7 @@ PHP;
     private function formatSchemaEnumerationMemberInfoAttribute(array $types, ?string $rdfsComment): string
     {
         $typePhp = $this->exportArrayInline($types);
-        $commentPhp = $rdfsComment !== null && $rdfsComment !== ''
+        $commentPhp = $rdfsComment !== null
             ? var_export($this->decodeHtmlEntitiesForPhpExport($rdfsComment), true)
             : 'null';
 
@@ -992,17 +914,13 @@ PHP;
     {
         $out = [];
         foreach ($graph as $node) {
-            if (! $this->isSchemaProperty($node)) {
-                continue;
-            }
-
-            $name = $this->schemaLocalName($node['@id']);
+            $name = $this->schemaNodeName($node, 'rdf:Property');
             if ($name === null) {
                 continue;
             }
 
             $comment = $this->commentToPlainText($node['rdfs:comment'] ?? null);
-            $out[$name] = $comment !== null && $comment !== '' ? $this->descriptionTextToHtml($comment) : '';
+            $out[$name] = $comment !== null ? $this->descriptionTextToHtml($comment) : '';
         }
 
         return $out;
@@ -1019,16 +937,8 @@ PHP;
     {
         $propertySet = array_fill_keys($propertyNames, null);
         foreach ($graph as $node) {
-            if (! $this->isSchemaProperty($node)) {
-                continue;
-            }
-
-            $name = $this->schemaLocalName($node['@id'] ?? null);
+            $name = $this->schemaNodeName($node, 'rdf:Property');
             if ($name === null) {
-                continue;
-            }
-
-            if (! array_key_exists($name, $propertySet)) {
                 continue;
             }
 
@@ -1052,14 +962,9 @@ PHP;
         array $typeNames,
         array $typeAncestors
     ): array {
-        $typeSet = array_fill_keys($typeNames, true);
         $propertyToTypes = [];
         foreach ($graph as $node) {
-            if (! $this->isSchemaProperty($node)) {
-                continue;
-            }
-
-            $propName = $this->schemaLocalName($node['@id']);
+            $propName = $this->schemaNodeName($node, 'rdf:Property');
             if ($propName === null) {
                 continue;
             }
@@ -1067,8 +972,9 @@ PHP;
             $domainIncludes = $node['schema:domainIncludes'] ?? null;
             $targets = $this->normalizeIdList($domainIncludes);
             foreach ($targets as $target) {
-                $type = $this->schemaLocalName(\is_array($target) ? ($target['@id'] ?? '') : $target);
-                if ($type !== null && isset($typeSet[$type])) {
+                // A domain that is not a type is kept: it matches no type's ancestors below
+                $type = $this->schemaLocalName($target);
+                if ($type !== null) {
                     $propertyToTypes[$propName][] = $type;
                 }
             }
@@ -1084,7 +990,6 @@ PHP;
                 }
             }
 
-            $props = array_values(array_unique($props));
             sort($props);
             $typeProperties[$type] = $props;
         }
@@ -1109,24 +1014,16 @@ PHP;
         }
 
         foreach ($graph as $node) {
-            if (! $this->isSchemaProperty($node)) {
-                continue;
-            }
-
-            $propName = $this->schemaLocalName($node['@id']);
+            $propName = $this->schemaNodeName($node, 'rdf:Property');
             if ($propName === null) {
-                continue;
-            }
-
-            if (! isset($propertyDomains[$propName])) {
                 continue;
             }
 
             $domainIncludes = $node['schema:domainIncludes'] ?? null;
             $targets = $this->normalizeIdList($domainIncludes);
             foreach ($targets as $target) {
-                $type = $this->schemaLocalName(\is_array($target) ? ($target['@id'] ?? '') : $target);
-                if ($type !== null && $type !== '') {
+                $type = $this->schemaLocalName($target);
+                if ($type !== null) {
                     $propertyDomains[$propName][] = $type;
                 }
             }
@@ -1134,16 +1031,18 @@ PHP;
             $rangeIncludes = $node['schema:rangeIncludes'] ?? null;
             $rangeTargets = $this->normalizeIdList($rangeIncludes);
             foreach ($rangeTargets as $target) {
-                $type = $this->schemaLocalName(\is_array($target) ? ($target['@id'] ?? '') : $target);
-                if ($type !== null && $type !== '') {
+                $type = $this->schemaLocalName($target);
+                if ($type !== null) {
                     $propertyRanges[$propName][] = $type;
                 }
             }
 
-            $propertyDomains[$propName] = array_values(array_unique($propertyDomains[$propName]));
-            $propertyRanges[$propName] = array_values(array_unique($propertyRanges[$propName]));
-            sort($propertyDomains[$propName]);
-            sort($propertyRanges[$propName]);
+            $domains = array_unique($propertyDomains[$propName]);
+            $ranges = array_unique($propertyRanges[$propName]);
+            sort($domains);
+            sort($ranges);
+            $propertyDomains[$propName] = $domains;
+            $propertyRanges[$propName] = $ranges;
         }
 
         return [$propertyDomains, $propertyRanges];
@@ -1158,37 +1057,16 @@ PHP;
      */
     private function mergeOwlImpliedRangeIncludes(array $propertyRanges): array
     {
-        $datatypeOnlyLookup = array_flip(self::OWL_DATATYPE_ONLY_RANGE_TYPES);
         $out = [];
         foreach ($propertyRanges as $propName => $ranges) {
-            if ($ranges === []) {
+            // Ranges that are empty or only datatype primitives take no defaults
+            if (array_diff($ranges, self::OWL_DATATYPE_ONLY_RANGE_TYPES) === []) {
                 $out[$propName] = $ranges;
 
                 continue;
             }
 
-            $onlyDatatypePrimitives = true;
-            foreach ($ranges as $type) {
-                if (! isset($datatypeOnlyLookup[$type])) {
-                    $onlyDatatypePrimitives = false;
-                    break;
-                }
-            }
-
-            if ($onlyDatatypePrimitives) {
-                $out[$propName] = $ranges;
-
-                continue;
-            }
-
-            $merged = $ranges;
-            foreach (self::OWL_DEFAULT_EXTRA_RANGE_TYPES as $extra) {
-                if (! in_array($extra, $merged, true)) {
-                    $merged[] = $extra;
-                }
-            }
-
-            $merged = array_values(array_unique($merged));
+            $merged = array_merge($ranges, array_diff(self::OWL_DEFAULT_EXTRA_RANGE_TYPES, $ranges));
             sort($merged);
             $out[$propName] = $merged;
         }
@@ -1214,7 +1092,6 @@ PHP;
                 $domains[] = 'Role';
             }
 
-            $domains = array_values(array_unique($domains));
             sort($domains);
             $propertyDomains[$propName] = $domains;
         }
@@ -1244,7 +1121,6 @@ PHP;
                 }
             }
 
-            $props = array_values(array_unique($props));
             sort($props);
             $typeProperties[$typeName] = $props;
         }
@@ -1268,7 +1144,7 @@ PHP;
             $id = $schemaPrefix.$name;
             $node = $byId[$id] ?? $byId['schema:'.$name] ?? null;
             $comment = $this->commentToPlainText($node['rdfs:comment'] ?? null);
-            $out[$name] = $comment !== null && $comment !== ''
+            $out[$name] = $comment !== null
                 ? $this->descriptionTextToHtml($comment)
                 : null;
         }
@@ -1304,10 +1180,6 @@ PHP;
      */
     private function commentToPlainText(mixed $value): ?string
     {
-        if ($value === null) {
-            return null;
-        }
-
         if (\is_string($value)) {
             $value = trim($value);
 
@@ -1350,6 +1222,8 @@ PHP;
         while (preg_match($pattern, $text, $m, PREG_OFFSET_CAPTURE, $offset) === 1) {
             $pos = $m[0][1];
             $len = strlen($m[0][0]);
+            // Every description passes through decodeHtmlEntitiesForPhpExport(), which undoes this escaping, so it never shows
+            // @pest-mutate-ignore: BitwiseOrToBitwiseAnd,UnwrapHtmlspecialchars
             $out .= htmlspecialchars(substr($text, $offset, $pos - $offset), ENT_QUOTES | ENT_HTML5, 'UTF-8');
             if ($m[2][0] !== '') {
                 $url = trim($m[2][0]);
@@ -1357,20 +1231,22 @@ PHP;
                     $url = $schemaOrgBase.ltrim($url, '/');
                 }
 
-                if (preg_match('#^https?://#i', $url)) {
-                    $out .= '<a href="'.htmlspecialchars($url, ENT_QUOTES | ENT_HTML5, 'UTF-8').'" target="_blank" rel="noopener noreferrer">'.htmlspecialchars($m[1][0], ENT_QUOTES | ENT_HTML5, 'UTF-8').'</a>';
-                } else {
-                    $out .= htmlspecialchars($m[0][0], ENT_QUOTES | ENT_HTML5, 'UTF-8');
-                }
+                // Every description passes through decodeHtmlEntitiesForPhpExport(), which undoes this escaping, so it never shows
+                // @pest-mutate-ignore: BitwiseOrToBitwiseAnd,UnwrapHtmlspecialchars
+                $out .= '<a href="'.htmlspecialchars($url, ENT_QUOTES | ENT_HTML5, 'UTF-8').'" target="_blank" rel="noopener noreferrer">'.htmlspecialchars($m[1][0], ENT_QUOTES | ENT_HTML5, 'UTF-8').'</a>';
             } else {
                 $name = trim($m[3][0]);
                 $url = $schemaOrgBase.rawurlencode($name);
+                // Every description passes through decodeHtmlEntitiesForPhpExport(), which undoes this escaping, so it never shows
+                // @pest-mutate-ignore: BitwiseOrToBitwiseAnd,UnwrapHtmlspecialchars
                 $out .= '<a href="'.htmlspecialchars($url, ENT_QUOTES | ENT_HTML5, 'UTF-8').'" target="_blank" rel="noopener noreferrer">'.htmlspecialchars($name, ENT_QUOTES | ENT_HTML5, 'UTF-8').'</a>';
             }
 
             $offset = $pos + $len;
         }
 
+        // Every description passes through decodeHtmlEntitiesForPhpExport(), which undoes this escaping, so it never shows
+        // @pest-mutate-ignore: BitwiseOrToBitwiseAnd,UnwrapHtmlspecialchars
         return $out.htmlspecialchars(substr($text, $offset), ENT_QUOTES | ENT_HTML5, 'UTF-8');
     }
 
@@ -1789,13 +1665,13 @@ PHP."\n";
         $lines = [];
         foreach ($propertyNames as $name) {
             $attr = $this->formatSchemaPropertyInfoAttribute(
-                $descriptions[$name] ?? '',
+                $descriptions[$name],
                 $domains[$name] ?? [],
                 $ranges[$name] ?? [],
                 $supersededBy[$name] ?? null
             );
             $lines[] = '    '.$attr;
-            $lines[] = '    case '.$this->propertyCaseName($name).' = '.var_export($name, true).';';
+            $lines[] = '    case '.$this->caseName($name, 'Property').' = '.var_export($name, true).';';
         }
 
         return implode("\n", $lines);
@@ -1820,29 +1696,6 @@ PHP."\n";
         $supersededByPhp = $schemaSupersededBy !== null ? var_export($schemaSupersededBy, true) : 'null';
 
         return '#[SchemaPropertyInfo(rdfs_comment: '.$commentPhp.', schema_domain_includes: '.$domainPhp.', range_includes: '.$rangePhp.', superseded_by: '.$supersededByPhp.')]';
-    }
-
-    /**
-     * Enum case identifier for a property name (valid PHP identifier; reserved/leading digit get "Property" prefix).
-     *
-     * @param  string  $propertyName  Schema.org property name (e.g., name, class)
-     */
-    private function propertyCaseName(string $propertyName): string
-    {
-        if ($propertyName === '') {
-            return $propertyName;
-        }
-
-        if (preg_match('/^\d/', $propertyName) === 1) {
-            return 'Property'.$propertyName;
-        }
-
-        $reserved = ['class', 'default', 'case', 'enum', 'and', 'or', 'try', 'catch', 'finally', 'switch', 'match', 'return', 'extends', 'implements', 'interface', 'trait', 'new', 'clone', 'instanceof', 'insteadof', 'as', 'goto', 'const', 'static', 'abstract', 'final', 'private', 'protected', 'public', 'readonly', 'fn', 'function', 'if', 'else', 'elseif', 'endif', 'for', 'endfor', 'foreach', 'endforeach', 'while', 'endwhile', 'do', 'break', 'continue', 'declare', 'enddeclare', 'print', 'echo', 'require', 'require_once', 'include', 'include_once', 'list', 'unset', 'isset', 'empty', 'die', 'exit', 'eval', 'include', 'yield', 'from', 'var', 'null', 'true', 'false'];
-        if (in_array(strtolower($propertyName), $reserved, true)) {
-            return 'Property'.$propertyName;
-        }
-
-        return $propertyName;
     }
 
     /**
@@ -1923,7 +1776,7 @@ PHP;
         foreach ($dataTypeNames as $name) {
             $attr = $this->formatSchemaDataTypeInfoAttribute($descriptions[$name] ?? null);
             $lines[] = '    '.$attr;
-            $lines[] = '    case '.$this->dataTypeCaseName($name).' = '.var_export($name, true).';';
+            $lines[] = '    case '.$this->caseName($name, 'DataType').' = '.var_export($name, true).';';
         }
 
         return implode("\n", $lines);
@@ -1934,34 +1787,11 @@ PHP;
      */
     private function formatSchemaDataTypeInfoAttribute(?string $rdfsComment): string
     {
-        $commentPhp = $rdfsComment !== null && $rdfsComment !== ''
+        $commentPhp = $rdfsComment !== null
             ? var_export($this->decodeHtmlEntitiesForPhpExport($rdfsComment), true)
             : 'null';
 
         return '#[SchemaDataTypeInfo(rdfs_comment: '.$commentPhp.')]';
-    }
-
-    /**
-     * Enum case identifier for a DataType name (valid PHP identifier; True/False and reserved get "DataType" prefix).
-     *
-     * @param  string  $dataTypeName  Schema.org DataType name (e.g., Boolean, True, False)
-     */
-    private function dataTypeCaseName(string $dataTypeName): string
-    {
-        if ($dataTypeName === '') {
-            return $dataTypeName;
-        }
-
-        if (preg_match('/^\d/', $dataTypeName) === 1) {
-            return 'DataType'.$dataTypeName;
-        }
-
-        $reserved = ['class', 'default', 'case', 'enum', 'and', 'or', 'try', 'catch', 'finally', 'switch', 'match', 'return', 'extends', 'implements', 'interface', 'trait', 'new', 'clone', 'instanceof', 'insteadof', 'as', 'goto', 'const', 'static', 'abstract', 'final', 'private', 'protected', 'public', 'readonly', 'fn', 'function', 'if', 'else', 'elseif', 'endif', 'for', 'endfor', 'foreach', 'endforeach', 'while', 'endwhile', 'do', 'break', 'continue', 'declare', 'enddeclare', 'print', 'echo', 'require', 'require_once', 'include', 'include_once', 'list', 'unset', 'isset', 'empty', 'die', 'exit', 'eval', 'include', 'yield', 'from', 'var', 'null', 'true', 'false'];
-        if (in_array(strtolower($dataTypeName), $reserved, true)) {
-            return 'DataType'.$dataTypeName;
-        }
-
-        return $dataTypeName;
     }
 
     /**
@@ -2002,7 +1832,7 @@ PHP;
                 $typeToMembers[$name] ?? []
             );
             $lines[] = '    '.$attr;
-            $lines[] = '    case '.$this->enumCaseName($name).' = '.var_export($name, true).';';
+            $lines[] = '    case '.$this->caseName($name, 'Type').' = '.var_export($name, true).';';
         }
 
         return implode("\n", $lines);
@@ -2031,7 +1861,7 @@ PHP;
         ?string $supersededBy = null,
         array $members = []
     ): string {
-        $commentPhp = $rdfsComment !== null && $rdfsComment !== ''
+        $commentPhp = $rdfsComment !== null
             ? var_export($this->decodeHtmlEntitiesForPhpExport($rdfsComment), true)
             : 'null';
         $parentsPhp = $this->exportArrayInline($parents);
@@ -2058,45 +1888,38 @@ PHP;
     }
 
     /**
+     * Enum case identifier for a name (valid PHP identifier): a name that starts with a digit or is a PHP reserved word
+     * gets the prefix.
+     *
+     * @param  string  $name  Schema.org name (e.g., Thing, 3DModel, class)
+     * @param  string  $prefix  Type, Property or DataType
+     */
+    private function caseName(string $name, string $prefix): string
+    {
+        if (preg_match('/^\d/', $name) === 1) {
+            return $prefix.$name;
+        }
+
+        // @pest-mutate-ignore: TrueToFalse
+        if (in_array(strtolower($name), self::RESERVED_WORDS, true)) {
+            return $prefix.$name;
+        }
+
+        return $name;
+    }
+
+    /**
      * Export list of strings to a single-line PHP array (for attribute args).
      *
      * @param  list<string>  $list
      */
     private function exportArrayInline(array $list): string
     {
-        if ($list === []) {
-            return '[]';
-        }
-
         $parts = [];
         foreach ($list as $s) {
             $parts[] = var_export($s, true);
         }
 
         return '['.implode(', ', $parts).']';
-    }
-
-    /**
-     * Enum case identifier from type name (must be valid PHP identifier).
-     * Names starting with a digit or that are PHP reserved get "Type" prefix.
-     *
-     * @param  string  $typeName  Schema.org type name (e.g., Thing, 3DModel, Class)
-     */
-    private function enumCaseName(string $typeName): string
-    {
-        if ($typeName === '') {
-            return $typeName;
-        }
-
-        if (preg_match('/^\d/', $typeName) === 1) {
-            return 'Type'.$typeName;
-        }
-
-        $reserved = ['class', 'default', 'case', 'enum', 'and', 'or', 'try', 'catch', 'finally', 'switch', 'match', 'return', 'extends', 'implements', 'interface', 'trait', 'new', 'clone', 'instanceof', 'insteadof', 'as', 'goto', 'const', 'static', 'abstract', 'final', 'private', 'protected', 'public', 'readonly', 'fn', 'function', 'if', 'else', 'elseif', 'endif', 'for', 'endfor', 'foreach', 'endforeach', 'while', 'endwhile', 'do', 'break', 'continue', 'declare', 'enddeclare', 'print', 'echo', 'require', 'require_once', 'include', 'include_once', 'list', 'unset', 'isset', 'empty', 'die', 'exit', 'eval', 'include', 'yield', 'from', 'var', 'null', 'true', 'false'];
-        if (in_array(strtolower($typeName), $reserved, true)) {
-            return 'Type'.$typeName;
-        }
-
-        return $typeName;
     }
 }

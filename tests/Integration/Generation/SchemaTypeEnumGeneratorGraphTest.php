@@ -330,3 +330,326 @@ it('gives Role and its descendants every role wrappable property, and nothing el
         ->and($types['Thing']['attribute'])->toContain("property_names: ['name'], slug:")
         ->and($types['Alpha']['attribute'])->not->toContain('affiliation');
 });
+
+it('names nothing for an id that ends where the name would start', function (): void {
+    $graph = [
+        schemaGraphClass('Thing'),
+        schemaGraphClass('DataType'),
+        ['@id' => 'schema:', '@type' => 'rdfs:Class'],
+        ['@id' => 'https://schema.org/', '@type' => ['rdfs:Class', 'schema:DataType']],
+        ['@id' => 'schema:', '@type' => 'rdf:Property'],
+        ['@id' => 'schema:', '@type' => 'schema:Color'],
+        schemaGraphClass('Child', 'rdfs:subClassOf', ['schema:', 'schema:Thing']),
+        schemaGraphProperty('name', 'schema:domainIncludes', ['schema:', 'schema:Thing'], 'schema:rangeIncludes', 'https://schema.org/'),
+        schemaGraphClass('Color', 'rdfs:subClassOf', 'schema:Enumeration'),
+        schemaGraphClass('Enumeration'),
+    ];
+
+    $files = schemaGraphGenerate($graph)['files'];
+
+    expect(array_keys(schemaGraphCases($files['SchemaType'])))->toBe(['Child', 'Color', 'Enumeration', 'Thing'])
+        ->and(array_keys(schemaGraphCases($files['SchemaProperty'])))->toBe(['name'])
+        ->and(array_keys(schemaGraphCases($files['SchemaDataType'])))->toBe(['DataType'])
+        ->and(array_keys(schemaGraphCases($files['SchemaEnumerationMember'])))->toBe([])
+        ->and(schemaGraphCases($files['SchemaType'])['Child']['attribute'])->toContain("rdfs_sub_class_of: ['Thing']")
+        ->and(schemaGraphCases($files['SchemaProperty'])['name']['attribute'])->toContain("schema_domain_includes: ['Thing'], range_includes: []");
+});
+
+it('ignores a reference object that has no @id and reads a one-item list of references', function (): void {
+    $graph = [
+        schemaGraphClass('Thing'),
+        schemaGraphClass('Alpha'),
+        schemaGraphClass('Object', 'rdfs:subClassOf', ['x' => 'y'], 'schema:supersededBy', ['x' => 'y']),
+        schemaGraphClass('Both', 'rdfs:subClassOf', ['@id' => 'schema:Thing', 0 => 'schema:Alpha']),
+        schemaGraphClass('One', 'rdfs:subClassOf', ['schema:Thing'], 'schema:supersededBy', [['@id' => 'schema:Alpha']]),
+        schemaGraphClass('Plain', 'rdfs:subClassOf', 'schema:Thing', 'schema:supersededBy', ['schema:Alpha']),
+        schemaGraphClass('Holey', 'rdfs:subClassOf', [null, 'schema:Thing'], 'schema:supersededBy', [[], ['@id' => 'schema:Alpha']]),
+        schemaGraphProperty('p', 'schema:domainIncludes', ['x' => 'y'], 'schema:rangeIncludes', ['x' => 'y'], 'schema:supersededBy', ['x' => 'y']),
+    ];
+
+    $files = schemaGraphGenerate($graph)['files'];
+    $types = schemaGraphCases($files['SchemaType']);
+
+    expect($types['Object']['attribute'])->toContain('rdfs_sub_class_of: [], children: [], ancestors: []')
+        ->and($types['Object']['attribute'])->toContain('superseded_by: null, members: [])')
+        ->and($types['Both']['attribute'])->toContain("rdfs_sub_class_of: ['Thing']")
+        ->and($types['One']['attribute'])->toContain("rdfs_sub_class_of: ['Thing']")
+        ->and($types['One']['attribute'])->toContain("superseded_by: 'Alpha'")
+        ->and($types['Plain']['attribute'])->toContain('superseded_by: null')
+        ->and($types['Holey']['attribute'])->toContain('rdfs_sub_class_of: []')
+        ->and($types['Holey']['attribute'])->toContain('superseded_by: null')
+        ->and(schemaGraphCases($files['SchemaProperty'])['p']['attribute'])->toBe('    #[SchemaPropertyInfo(rdfs_comment: null, schema_domain_includes: [], range_includes: [], superseded_by: null)]');
+});
+
+it('names nothing for an @id or @type entry that is an object without an @id', function (): void {
+    $graph = [
+        schemaGraphClass('Color', 'rdfs:subClassOf', 'schema:Enumeration'),
+        schemaGraphClass('Enumeration'),
+        ['@id' => ['x' => 'y'], '@type' => 'rdfs:Class'],
+        ['@id' => 'schema:Red', '@type' => [['x' => 'y'], 'schema:Color']],
+        ['@id' => 'schema:Plain', '@type' => [['x' => 'y']]],
+    ];
+
+    $files = schemaGraphGenerate($graph)['files'];
+
+    expect(array_keys(schemaGraphCases($files['SchemaType'])))->toBe(['Color', 'Enumeration'])
+        ->and(array_keys(schemaGraphCases($files['SchemaEnumerationMember'])))->toBe(['Red']);
+});
+
+it('takes a node as a class, property or member only when its type list holds the exact type string', function (): void {
+    $graph = [
+        schemaGraphClass('Color', 'rdfs:subClassOf', 'schema:Enumeration'),
+        schemaGraphClass('Enumeration'),
+        ['@id' => 'schema:NotAClass', '@type' => true],
+        ['@id' => 'schema:notAProperty', '@type' => true],
+        ['@id' => 'schema:Red', '@type' => [true, 'schema:Color']],
+    ];
+
+    $files = schemaGraphGenerate($graph)['files'];
+
+    expect(array_keys(schemaGraphCases($files['SchemaType'])))->toBe(['Color', 'Enumeration'])
+        ->and(array_keys(schemaGraphCases($files['SchemaProperty'])))->toBe([])
+        ->and(array_keys(schemaGraphCases($files['SchemaEnumerationMember'])))->toBe(['Red']);
+});
+
+it('finds a data type added late in a chain that alternates between the two routes', function (): void {
+    $graph = [
+        ['@id' => 'schema:D', '@type' => 'schema:C'],
+        ['@id' => 'schema:C', 'rdfs:subClassOf' => 'schema:B'],
+        ['@id' => 'schema:B', '@type' => 'schema:A'],
+        ['@id' => 'schema:A', 'rdfs:subClassOf' => 'schema:DataType'],
+        ['@id' => 'schema:Other', '@type' => 'schema:Unrelated'],
+    ];
+
+    $dataTypes = schemaGraphCases(schemaGraphGenerate($graph)['files']['SchemaDataType']);
+
+    expect(array_keys($dataTypes))->toBe(['A', 'B', 'C', 'D', 'DataType']);
+});
+
+it('keeps a data type out of the type list and out of the children of its parent', function (): void {
+    $warmer = new class implements AliasCacheWarmer
+    {
+        /** @var list<list<string>> */
+        public array $calls = [];
+
+        public function warm(array $typeNames): void
+        {
+            $this->calls[] = $typeNames;
+        }
+    };
+    $graph = [
+        schemaGraphClass('Gamma'),
+        schemaGraphClass('Alpha'),
+        schemaGraphClass('DataType'),
+        ['@id' => 'schema:Beta', '@type' => ['rdfs:Class', 'schema:DataType'], 'rdfs:subClassOf' => 'schema:Alpha'],
+    ];
+
+    $generated = schemaGraphGenerate($graph, $warmer);
+    $types = schemaGraphCases($generated['files']['SchemaType']);
+
+    expect($warmer->calls)->toBe([['Alpha', 'Gamma']])
+        ->and($types['Alpha']['attribute'])->toContain('children: [], ancestors: [], descendants: []');
+});
+
+it('reads a cycle and a diamond of parents once each', function (): void {
+    $graph = [
+        schemaGraphClass('A', 'rdfs:subClassOf', 'schema:B'),
+        schemaGraphClass('B', 'rdfs:subClassOf', 'schema:A'),
+        schemaGraphClass('Top'),
+        schemaGraphClass('Left', 'rdfs:subClassOf', 'schema:Top'),
+        schemaGraphClass('Right', 'rdfs:subClassOf', 'schema:Top'),
+        schemaGraphClass('Bottom', 'rdfs:subClassOf', ['schema:Right', 'schema:Left']),
+    ];
+
+    $types = schemaGraphCases(schemaGraphGenerate($graph)['files']['SchemaType']);
+
+    expect($types['A']['attribute'])->toContain("rdfs_sub_class_of: ['B'], children: ['B'], ancestors: ['B'], descendants: ['B']")
+        ->and($types['B']['attribute'])->toContain("rdfs_sub_class_of: ['A'], children: ['A'], ancestors: ['A'], descendants: ['A']")
+        ->and($types['Bottom']['attribute'])->toContain("rdfs_sub_class_of: ['Right', 'Left'], children: [], ancestors: ['Left', 'Right', 'Top']")
+        ->and($types['Top']['attribute'])->toContain("children: ['Left', 'Right'], ancestors: [], descendants: ['Bottom', 'Left', 'Right']");
+});
+
+it('merges the types of a repeated member in sorted order without repeats', function (): void {
+    $graph = [
+        schemaGraphClass('Enumeration'),
+        schemaGraphClass('Zed', 'rdfs:subClassOf', 'schema:Enumeration'),
+        schemaGraphClass('Aye', 'rdfs:subClassOf', 'schema:Enumeration'),
+        schemaGraphClass('Mid', 'rdfs:subClassOf', 'schema:Enumeration'),
+        ['@id' => 'schema:Member', '@type' => ['schema:Zed', 'schema:Mid', 'schema:Zed']],
+        ['@id' => 'schema:Member', '@type' => ['schema:Mid', 'schema:Aye']],
+        ['@id' => 'schema:Member', '@type' => 'schema:Zed'],
+        ['@id' => 'schema:Alone', '@type' => ['schema:Zed', 'schema:Aye', 'schema:Aye']],
+        ['@id' => 'schema:Other', '@type' => ['schema:Enumeration', 'schema:NotEnumeration', 'plain']],
+    ];
+
+    $files = schemaGraphGenerate($graph)['files'];
+    $members = schemaGraphCases($files['SchemaEnumerationMember']);
+    $types = schemaGraphCases($files['SchemaType']);
+
+    expect($members['Member']['attribute'])->toBe("    #[SchemaEnumerationMemberInfo(type: ['Aye', 'Mid', 'Zed'], rdfs_comment: null)]")
+        ->and($members['Alone']['attribute'])->toBe("    #[SchemaEnumerationMemberInfo(type: ['Aye', 'Zed'], rdfs_comment: null)]")
+        ->and($members['Other']['attribute'])->toBe("    #[SchemaEnumerationMemberInfo(type: ['Enumeration'], rdfs_comment: null)]")
+        ->and($types['Zed']['attribute'])->toContain("members: ['Alone', 'Member'])")
+        ->and($types['Aye']['attribute'])->toContain("members: ['Alone', 'Member'])");
+});
+
+it('lists a repeated class once and sorts the type names', function (): void {
+    $graph = [
+        schemaGraphClass('Mid'),
+        schemaGraphClass('Zed'),
+        schemaGraphClass('Aye'),
+        schemaGraphClass('Mid', 'rdfs:comment', 'second'),
+    ];
+
+    $types = schemaGraphGenerate($graph)['files']['SchemaType'];
+
+    expect(array_keys(schemaGraphCases($types)))->toBe(['Aye', 'Mid', 'Zed'])
+        ->and(substr_count($types, "case Mid = 'Mid';"))->toBe(1);
+});
+
+it('lists a repeated domain or range once and in sorted order', function (): void {
+    $graph = [
+        schemaGraphClass('Aye'),
+        schemaGraphClass('Bee'),
+        schemaGraphProperty('p', 'schema:domainIncludes', ['schema:Bee', 'schema:Aye', 'schema:Bee'], 'schema:rangeIncludes', ['schema:Text', 'schema:Boolean', 'schema:Text']),
+        schemaGraphProperty('p', 'schema:domainIncludes', ['schema:Aye', 'schema:Cee'], 'schema:rangeIncludes', 'schema:Boolean'),
+        schemaGraphProperty('q', 'schema:rangeIncludes', ['schema:Time', 'schema:Boolean', 'schema:Time']),
+    ];
+
+    $properties = schemaGraphCases(schemaGraphGenerate($graph)['files']['SchemaProperty']);
+
+    expect($properties['p']['attribute'])->toBe("    #[SchemaPropertyInfo(rdfs_comment: null, schema_domain_includes: ['Aye', 'Bee', 'Cee'], range_includes: ['Boolean', 'Role', 'Text', 'URL'], superseded_by: null)]")
+        ->and($properties['q']['attribute'])->toBe("    #[SchemaPropertyInfo(rdfs_comment: null, schema_domain_includes: [], range_includes: ['Boolean', 'Time'], superseded_by: null)]");
+});
+
+/**
+ * The sorted range list of a property whose ranges are the given names, with the OWL defaults added.
+ *
+ * @param  list<string>  $ranges
+ */
+function schemaGraphRangeList(array $ranges): string
+{
+    $all = array_values(array_unique(array_merge($ranges, ['Role', 'Text', 'URL'])));
+    sort($all);
+
+    return "range_includes: ['".implode("', '", $all)."'], superseded_by";
+}
+
+it('adds the OWL implied ranges unless every range is a datatype primitive', function (string $primitive): void {
+    $graph = [
+        schemaGraphProperty('only', 'schema:rangeIncludes', 'schema:'.$primitive),
+        schemaGraphProperty('mixed', 'schema:rangeIncludes', ['schema:'.$primitive, 'schema:Thing']),
+        schemaGraphProperty('role', 'schema:rangeIncludes', ['schema:'.$primitive, 'schema:Role', 'schema:URL']),
+    ];
+
+    $properties = schemaGraphCases(schemaGraphGenerate($graph)['files']['SchemaProperty']);
+
+    expect($properties['only']['attribute'])->toContain("range_includes: ['".$primitive."'], superseded_by")
+        ->and($properties['mixed']['attribute'])->toContain(schemaGraphRangeList([$primitive, 'Thing']))
+        ->and($properties['role']['attribute'])->toContain(schemaGraphRangeList([$primitive]));
+})->with(['Boolean', 'Date', 'DateTime', 'Float', 'Integer', 'Number', 'Time']);
+
+it('reads a comment of any shape and drops a blank one', function (): void {
+    $graph = [
+        schemaGraphClass('Blank', 'rdfs:comment', '   '),
+        schemaGraphClass('BlankList', 'rdfs:comment', ['en', '   ']),
+        schemaGraphClass('OneItem', 'rdfs:comment', ['only']),
+        schemaGraphClass('Tagged', 'rdfs:comment', ['en', ' Spaced ']),
+        schemaGraphClass('Keyed', 'rdfs:comment', ['a' => 5, 'b' => '  ', 'c' => ' text ']),
+        schemaGraphClass('Numbers', 'rdfs:comment', [1, 2]),
+        schemaGraphClass('Number', 'rdfs:comment', 5),
+        schemaGraphClass('Trimmed', 'rdfs:comment', "\t padded \n"),
+        schemaGraphClass('Skipped', 'rdfs:comment', [5, '  ', 'z']),
+    ];
+
+    $types = schemaGraphCases(schemaGraphGenerate($graph)['files']['SchemaType']);
+    $comment = static fn (string $name): string => explode(', rdfs_sub_class_of', $types[$name]['attribute'])[0];
+
+    expect($comment('Blank'))->toBe('    #[SchemaTypeInfo(rdfs_comment: null')
+        ->and($comment('BlankList'))->toBe('    #[SchemaTypeInfo(rdfs_comment: null')
+        ->and($comment('OneItem'))->toBe("    #[SchemaTypeInfo(rdfs_comment: 'only'")
+        ->and($comment('Tagged'))->toBe("    #[SchemaTypeInfo(rdfs_comment: 'Spaced'")
+        ->and($comment('Keyed'))->toBe("    #[SchemaTypeInfo(rdfs_comment: 'text'")
+        ->and($comment('Numbers'))->toBe('    #[SchemaTypeInfo(rdfs_comment: null')
+        ->and($comment('Number'))->toBe('    #[SchemaTypeInfo(rdfs_comment: null')
+        ->and($comment('Trimmed'))->toBe("    #[SchemaTypeInfo(rdfs_comment: 'padded'")
+        ->and($comment('Skipped'))->toBe('    #[SchemaTypeInfo(rdfs_comment: null');
+});
+
+it('turns the markdown links of a description into anchors and trims what is inside them', function (): void {
+    $graph = [
+        schemaGraphClass('Links', 'rdfs:comment', 'A [](https://x.org/empty) B [t]( https://x.org/spaced ) C [[ Padded Name ]] D [s](/rel/path) E [bare](abs/path) F [u](HTTP://X.ORG/up)'),
+    ];
+
+    $attribute = schemaGraphCases(schemaGraphGenerate($graph)['files']['SchemaType'])['Links']['attribute'];
+    $anchor = static fn (string $href, string $text): string => '<a href="'.$href.'" target="_blank" rel="noopener noreferrer">'.$text.'</a>';
+
+    expect($attribute)->toContain("rdfs_comment: 'A ".$anchor('https://x.org/empty', '')
+        .' B '.$anchor('https://x.org/spaced', 't')
+        .' C '.$anchor('https://schema.org/Padded%20Name', 'Padded Name')
+        .' D '.$anchor('https://schema.org/rel/path', 's')
+        .' E '.$anchor('https://schema.org/abs/path', 'bare')
+        .' F '.$anchor('HTTP://X.ORG/up', 'u')."'");
+});
+
+it('reads a data type, member or type description from whichever id form holds it and prefers the documented form', function (): void {
+    $graph = [
+        schemaGraphClass('DataType'),
+        ['@id' => 'https://schema.org/UrlOnly', '@type' => 'schema:DataType', 'rdfs:comment' => 'url only'],
+        ['@id' => 'schema:ShortOnly', '@type' => 'schema:DataType', 'rdfs:comment' => 'short only'],
+        ['@id' => 'schema:Both', '@type' => 'schema:DataType', 'rdfs:comment' => 'both short'],
+        ['@id' => 'https://schema.org/Both', '@type' => 'schema:DataType', 'rdfs:comment' => 'both url'],
+        schemaGraphClass('Enumeration'),
+        schemaGraphClass('Kind', 'rdfs:subClassOf', 'schema:Enumeration'),
+        ['@id' => 'https://schema.org/MemberUrl', '@type' => 'schema:Kind', 'rdfs:comment' => 'member url only'],
+        ['@id' => 'schema:MemberShort', '@type' => 'schema:Kind', 'rdfs:comment' => 'member short only'],
+        ['@id' => 'schema:MemberBoth', '@type' => 'schema:Kind', 'rdfs:comment' => 'member both short'],
+        ['@id' => 'https://schema.org/MemberBoth', '@type' => 'schema:Kind', 'rdfs:comment' => 'member both url'],
+        ['@id' => 'schema:TypeBoth', '@type' => 'rdfs:Class', 'rdfs:comment' => 'type both short'],
+        ['@id' => 'https://schema.org/TypeBoth', '@type' => 'rdfs:Class', 'rdfs:comment' => 'type both url'],
+    ];
+
+    $files = schemaGraphGenerate($graph)['files'];
+    $dataTypes = schemaGraphCases($files['SchemaDataType']);
+    $members = schemaGraphCases($files['SchemaEnumerationMember']);
+    $types = schemaGraphCases($files['SchemaType']);
+
+    expect($dataTypes['UrlOnly']['attribute'])->toBe("    #[SchemaDataTypeInfo(rdfs_comment: 'url only')]")
+        ->and($dataTypes['ShortOnly']['attribute'])->toBe("    #[SchemaDataTypeInfo(rdfs_comment: 'short only')]")
+        ->and($dataTypes['Both']['attribute'])->toBe("    #[SchemaDataTypeInfo(rdfs_comment: 'both url')]")
+        ->and($members['MemberUrl']['attribute'])->toContain("rdfs_comment: 'member url only'")
+        ->and($members['MemberShort']['attribute'])->toContain("rdfs_comment: 'member short only'")
+        ->and($members['MemberBoth']['attribute'])->toContain("rdfs_comment: 'member both short'")
+        ->and($types['TypeBoth']['attribute'])->toContain("rdfs_comment: 'type both url'");
+});
+
+it('slugs a type name by lower casing it and replacing spaces and hyphens with underscores', function (): void {
+    $graph = [
+        schemaGraphClass('Some-Hyphen Space Type'),
+        schemaGraphClass('3DModel'),
+    ];
+
+    $php = schemaGraphGenerate($graph)['files']['SchemaType'];
+
+    expect($php)->toContain("slug: 'some_hyphen_space_type'")
+        ->and($php)->toContain("slug: '3dmodel'");
+});
+
+it('reads the schema.org document over HTTP, following a redirect, and gives null for a failed read', function (): void {
+    $read = static function (string $url): ?string {
+        $body = new ReflectionMethod(SchemaTypeEnumGenerator::class, 'readUrlOverHttp')->invoke(null, $url);
+
+        return \is_string($body) ? $body : null;
+    };
+
+    withLocalHttpServer(function (string $base) use ($read): void {
+        $direct = $read($base.'/echo');
+        $redirected = $read($base.'/redirect');
+
+        expect($direct)->toBeString()->toContain('"user_agent"')
+            ->and($redirected)->toBe($direct)
+            ->and($read($base.'/missing'))->toBeNull();
+    });
+
+    expect($read('http://127.0.0.1:1/nothing'))->toBeNull();
+});
