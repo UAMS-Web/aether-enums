@@ -24,6 +24,12 @@ it('keeps the extensions of each registration pattern, in the order the patterns
     'two markers on one line, the later one kept after the earlier' => ['File extension: File extension: a,b', ['file', 'b', 'a']],
     'a marker with only a form feed after it' => ["File extension(s): \f", []],
     'a marker with nothing after it' => ['File extension(s): ', []],
+    'trailing spaces after the extension' => ['File extension: exr  ', ['exr']],
+    'a dash after a marker that shares its line' => ['File extension: File extension: -', []],
+    'a dash line after a marker that shares its line' => ["\nFile extension: File extension: -\n.", []],
+    'an example in parentheses after a quoted extension' => ['File extension: "x"(e.g. y)', []],
+    'a quoted extension followed by is' => ['File extension: File extension: "x" is "x"', []],
+    'a quoted extension and a recommendation' => ["File extension(s): \"x\"\n, is .", []],
 ]);
 
 it('returns no extension for a blank fragment', function (string $text): void {
@@ -55,6 +61,8 @@ it('applies each filter of a fragment', function (string $text, array $expected)
     'a hash part is skipped and the next part kept' => ['x#y,z', ['z']],
     'a part with a space is skipped' => ['a b', []],
     'a dotted wildcard keeps its second dot' => ['*.a.b', ['a.b']],
+    'an empty part is skipped and the next part kept' => [',b', ['b']],
+    'a part that keeps a space is skipped and the next part kept' => ["x y\n-, a", ['a']],
     'a numbered wildcard with a base' => ['*.f<n>', ['f0', 'f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7', 'f8', 'f9']],
     'a wildcard of a format the generator once listed is an extension' => ['*.finf', ['finf']],
     'a dot and a null byte are not an extension' => [" .\0\f- - ;", []],

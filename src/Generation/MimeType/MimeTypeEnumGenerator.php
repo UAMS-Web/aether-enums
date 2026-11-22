@@ -1162,8 +1162,8 @@ final class MimeTypeEnumGenerator
             $extensions = $this->extensionsMatching($cleanPattern, $content);
         }
 
-        // Remove duplicates and normalize
-        return array_unique(\array_map(strtolower(...), $extensions));
+        // Remove duplicates; parseExtensionText() already lower cases every extension
+        return array_unique($extensions);
     }
 
     /**
@@ -1257,6 +1257,8 @@ final class MimeTypeEnumGenerator
         );
 
         // Loop through split parts to process each extension
+        // preg_split() with this pattern never returns false.
+        // @pest-mutate-ignore: FalseToTrue
         foreach (($parts === false ? [] : $parts) as $part) {
             // Trim whitespace from part
             $part = \trim($part);
@@ -1428,16 +1430,10 @@ final class MimeTypeEnumGenerator
                 );
             }
 
-            // Check if the extension is empty after removing dot
-            if ($extension === '') {
-                // Skip empty extensions
-                continue;
-            }
-
             // Trim again after processing
             $extension = \trim($extension);
 
-            // Check if the extension is empty after processing
+            // Check if the extension is empty after removing the dot and trimming
             if ($extension === '') {
                 // Skip empty extensions after trimming
                 continue;

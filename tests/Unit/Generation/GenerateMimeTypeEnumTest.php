@@ -13,14 +13,9 @@ use UAMSWeb\Aether\Enums\Generation\MimeType\MimeTypeEnumGenerator;
  * registration page), parseExtensionText (normalize an extension fragment), and
  * generateCaseId (MIME type -> enum case identifier).
  *
- * Mutation: ~66% over the parser methods (72 of 213 survive). This is
- * a faithful port of the original 177-row data providers, preserving their (extensive,
- * example-based) coverage exactly. The residual survivors are internal branches/helpers
- * of the large IANA-registration parser that example rows do not individually pin (plus
- * some equivalents). This is an ACCEPTED, documented gap: exhaustively killing them would
- * mean substantial new internal-method tests, out of scope for this build-time console
- * command. (Contrast the runtime modifiers in this migration, which are driven to 100%
- * of killable.)
+ * This is a faithful port of the original 177-row data providers. The rules those rows do not pin
+ * (which registration pattern a page needs, the order of the extensions, each filter of a fragment)
+ * are pinned by MimeTypeExtensionParsingTest.
  *
  * @command  php artisan test --compact tests/Unit/Services/EnumGeneration/GenerateMimeTypeEnumTest.php
  */
