@@ -1,4 +1,4 @@
-Written against v0.2.1.
+Written against v0.2.2.
 
 The five geography enums are `State`, `CanadianProvince`, `Country`, `County` and `ZipCode`, all in the `UAMSWeb\Aether\Enums` namespace. Each is a string-backed enum whose getters read data from an attribute on the case. Fields that no getter exposes are read from the attribute: see [Metadata attributes](Metadata-attributes.md).
 
@@ -53,9 +53,9 @@ The five geography enums are `State`, `CanadianProvince`, `Country`, `County` an
 | --- | --- | --- |
 | `fullName()` | `string` | `Benton County` |
 | `fipsCode()` | `string`, the three-digit county part of the FIPS code (without the state) | `007` |
-| `parent()` | `?string`, documented as the parent state | throws `ValueError` in v0.2.1 |
+| `parent()` | `?string`, the parent's two-character USPS code | `AR` |
 
-**Warning:** `County::parent()` throws a `ValueError` (`Unknown field 'parent' for county: ...`) for every case in v0.2.1; it is tracked in [#65](https://github.com/UAMS-Web/aether-enums/issues/65). To read the parent state, read `parentUspsCode` or `parentFipsCode` from the case's `CountyInfo` attribute, as [Metadata attributes](Metadata-attributes.md) shows. The docblock on the enum names more getters than exist; only `fullName()`, `fipsCode()` and `parent()` are defined.
+**Note:** `parent()` threw a `ValueError` for every case through v0.2.1 and returns the USPS code from v0.2.2 on; see [Troubleshooting](Troubleshooting.md#fixed). The other attribute fields have no getter and are read as [Metadata attributes](Metadata-attributes.md) shows. The enum's docblock names only the three getters that exist: `fullName()`, `fipsCode()` and `parent()`.
 
 ## ZipCode
 
