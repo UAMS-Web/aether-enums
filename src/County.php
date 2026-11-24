@@ -15,12 +15,7 @@ use UAMSWeb\Aether\Enums\Generation\EnumDataUtils;
  * This enum provides two ways to access attribute data:
  *
  *   1. **Getter Methods** (Recommended for common use):
- *      - `fullName()`, `baseName()`, `fipsCode()`, `parentUspsCode()`,
- *        `parentFipsCode()`, `geoId()`, `nationalStandardCode()`,
- *        `fipsClassCode()`, `functionalStatusCode()`,
- *        `mafTigerFeatureClassCode()`, `mafTigerObjectIdentifier()`,
- *        `legalStatisticalAreaDescriptionCode()`, `areaLand()`, `areaWater()`,
- *        `arcGisObjectIdentifier()`, `centroidGeo()`, `internalPointGeo()`
+ *      - `fullName()`, `fipsCode()`, `parent()`
  *      - These methods use cached data for optimal performance
  *      - Only include the most commonly used attributes
  *      - Add new getter methods whenever an attribute becomes frequently used
@@ -10007,7 +10002,7 @@ enum County: string
         $dataExtractor = fn ($info, $caseValue) => [
             'fullName' => $info->fullName,
             'fipsCode' => $info->fipsCode,
-            'parent' => $info->parent,
+            'parent' => $info->parentUspsCode,
         ];
 
         // ---
@@ -10051,14 +10046,14 @@ enum County: string
     /**
      * Get the FIPS county code.
      *
-     * @return string The FIPS county code (5-digit string)
+     * @return string The three-digit county FIPS code within its state (e.g., '007')
      */
     public function fipsCode(): string
     {
         // Resolve from cached county data
         $data = self::countyData();
 
-        // Return the three-digit county FIPS, or null if missing
+        // Return the three-digit county FIPS code
         return EnumDataUtils::getFieldValue(
             $data,
             $this->value,
@@ -10070,7 +10065,7 @@ enum County: string
     /**
      * Get the parent state, territory, or district.
      *
-     * @return ?string The parent state, territory, or district
+     * @return ?string The two-character USPS code of the parent (e.g., 'AR')
      */
     public function parent(): ?string
     {
