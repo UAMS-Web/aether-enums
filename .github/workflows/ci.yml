@@ -56,11 +56,14 @@ on:
     branches: [main]
   # Lets the workflow be run on demand against a branch.
   workflow_dispatch:
-  # Daily, on the default branch: an advisory published after a pull request merged shows up in
-  # `audit` below. A schedule runs the whole workflow, so every other job runs daily too, which
-  # costs nothing on a public repository and catches an upstream change that breaks the build.
+  # Weekly, Mondays at 07:17 UTC, on the default branch. The scheduled run is the one that
+  # catches decay no pull request touches (a dependency or tooling change), and the chain's full
+  # mutation pass is the check it exists to run; `mutate: false` below keeps that pass off until
+  # mutation is turned on here. A schedule runs the whole workflow, so every other job runs
+  # weekly too, which costs nothing on a public repository. An advisory published between runs
+  # shows up in `audit` below on the next pull request or the next scheduled run.
   schedule:
-    - cron: '17 6 * * *'
+    - cron: '17 7 * * 1'
 
 # A new push to a pull request cancels that pull request's stale run.
 concurrency:
@@ -135,7 +138,7 @@ jobs:
           tools: composer:v2
 
       # Reads `composer.lock`, so it needs no install. It fails on any advisory in a locked
-      # package, on a pull request and on the daily schedule. `--abandoned=ignore` leaves
+      # package, on a pull request and on the weekly schedule. `--abandoned=ignore` leaves
       # abandoned-package reports out: the command's default fails on them, and they are not
       # a security advisory.
       - run: composer audit --locked --abandoned=ignore
