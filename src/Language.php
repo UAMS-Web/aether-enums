@@ -24267,96 +24267,71 @@ enum Language: string
     /**
      * Get the ISO 639-1 alpha-2 code of the language.
      *
-     * @return ?string The alpha-2 code
+     * @return ?string The ISO 639-1 alpha-2 code, or null when the language has none
      */
-    public function iso639_1(): string
+    public function iso639_1(): ?string
     {
         // Retrieve the cached language data map
         $data = self::languageData();
 
-        // Extract and return the iso639_1 field value for this language
-        return EnumDataUtils::getFieldValue(
-            $data,
-            $this->value,
-            'iso639_1',
-            'language'
-        );
+        // Return the iso639_1 field value, or null when this language has none
+        return $data[$this->value]['iso639_1'] ?? null;
     }
 
     /**
      * Get the ISO 639-2/B alpha-3 code of the language.
      *
-     * @return ?string The alpha-3 code
+     * @return ?string The ISO 639-2/B alpha-3 code, or null when the language has none
      */
-    public function iso639_2_b(): string
+    public function iso639_2_b(): ?string
     {
         // Retrieve the cached language data map
         $data = self::languageData();
 
-        // Extract and return the iso639_2_b field value for this language
-        return EnumDataUtils::getFieldValue(
-            $data,
-            $this->value,
-            'iso639_2_b',
-            'language'
-        );
+        // Return the iso639_2_b field value, or null when this language has none
+        return $data[$this->value]['iso639_2_b'] ?? null;
     }
 
     /**
      * Get the ISO 639-2/T alpha-3 code of the language.
      *
-     * @return ?string The numeric code
+     * @return ?string The ISO 639-2/T alpha-3 code, or null when the language has none
      */
-    public function iso639_2_t(): string
+    public function iso639_2_t(): ?string
     {
         // Retrieve the cached language data map
         $data = self::languageData();
 
-        // Extract and return the iso639_2_t field value for this language
-        return EnumDataUtils::getFieldValue(
-            $data,
-            $this->value,
-            'iso639_2_t',
-            'language'
-        );
+        // Return the iso639_2_t field value, or null when this language has none
+        return $data[$this->value]['iso639_2_t'] ?? null;
     }
 
     /**
      * Get the ISO 639-3 alpha-3 code of the language.
      *
-     * @return ?string The numeric code
+     * @return ?string The ISO 639-3 alpha-3 code, or null when the language has none
      */
-    public function iso639_3(): string
+    public function iso639_3(): ?string
     {
         // Retrieve the cached language data map
         $data = self::languageData();
 
-        // Extract and return the iso639_3 field value for this language
-        return EnumDataUtils::getFieldValue(
-            $data,
-            $this->value,
-            'iso639_3',
-            'language'
-        );
+        // Return the iso639_3 field value, or null when this language has none
+        return $data[$this->value]['iso639_3'] ?? null;
     }
 
     /**
      * Get the ISO 639-5 alpha-3 code of the language.
      *
-     * @return ?string The numeric code
+     * @return ?string The ISO 639-5 alpha-3 code, or null when the language has none
      */
-    public function iso639_5(): string
+    public function iso639_5(): ?string
     {
         // Retrieve the cached language data map
         $data = self::languageData();
 
-        // Extract and return the iso639_5 field value for this language
-        return EnumDataUtils::getFieldValue(
-            $data,
-            $this->value,
-            'iso639_5',
-            'language'
-        );
+        // Return the iso639_5 field value, or null when this language has none
+        return $data[$this->value]['iso639_5'] ?? null;
     }
 
     /**
