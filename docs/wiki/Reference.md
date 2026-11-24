@@ -1,27 +1,32 @@
-Written against the unreleased `main` branch.
+Written against v0.2.1.
 
-Everything in this add-on lives in the `UAMSWeb\Aether\Enums` namespace. There are no configuration keys.
+Everything in this add-on lives in the `UAMSWeb\Aether\Enums` namespace (`src/`). This page lists what the add-on registers with Statamic and Laravel, then indexes the reference pages for the enums and the commands.
 
-## Enums
+## What the add-on registers
 
-The [README](https://github.com/UAMS-Web/aether-enums#the-enums) lists the twenty enums with their case counts. Each is a backed enum in `src/`, and its metadata is read through the classes in `UAMSWeb\Aether\Enums\Attributes`.
+The host discovers `UAMSWeb\Aether\Enums\ServiceProvider` through `extra.laravel.providers` in `composer.json`. The provider extends Statamic's `AddonServiceProvider` and registers two things:
 
-## Commands
-
-`generate:county-enum`, `generate:mime-type-enum`, `generate:state-enum` and `generate:zip-enum` write a timestamped file (`County_generated_<date>_<time>.php`) to review and rename over the committed enum; the others overwrite in place. `generate:zip-enum` needs `config('services.hud.usps_api_token')`.
-
-| Command | Writes |
+| Item | What it is |
 | --- | --- |
-| `generate:county-enum` | `County` |
-| `generate:credential-registry-enum` | `CredentialRegistry` |
-| `generate:international-code-designator-enum` | `InternationalCodeDesignator` |
-| `generate:isced-enums` | `IscedA2011`, `IscedP2011`, `IscedF2013` |
-| `generate:isco-08-enum` | `Isco08` |
-| `generate:mime-type-enum` | `MimeType` |
-| `generate:schema-type-enum` | `SchemaType`, `SchemaProperty`, `SchemaDataType`, `SchemaEnumerationMember` |
-| `generate:state-enum` | `State` |
-| `generate:zip-enum` | `ZipCode` |
+| Commands | The nine `generate:*` commands: `generate:county-enum`, `generate:credential-registry-enum`, `generate:international-code-designator-enum`, `generate:isced-enums`, `generate:isco-08-enum`, `generate:mime-type-enum`, `generate:schema-type-enum`, `generate:state-enum` and `generate:zip-enum`. See [Generator commands](Generator-commands.md). |
+| Control Panel assets | A Vite build of `resources/js/cp.js` and `resources/css/cp.css`, committed under `resources/dist`. Both files are empty placeholders: the script registers nothing in the Control Panel and the stylesheet has no rules. `php artisan vendor:publish --tag=aether-enums` copies the build to `public/vendor/aether-enums/build`. |
 
-## Contract
+The add-on registers none of the following, so there is nothing to configure or call: configuration keys, routes, Antlers tags, permissions, Control Panel screens or navigation, fieldtypes, listeners, and editions. The enums are plain PHP classes that a host's code, or another add-on, uses directly.
 
-`UAMSWeb\Aether\Enums\Generation\Schema\AliasCacheWarmer` is the one interface a host can implement. Bind it in the container and `generate:schema-type-enum` calls `warm()` with the generated type names.
+The one contract a host can fulfill is the `AliasCacheWarmer` interface: see [Warming a host cache](Warming-a-host-cache.md).
+
+## The enums
+
+The [README](https://github.com/UAMS-Web/aether-enums#the-enums) lists the twenty enums with their case counts and what each lists. Each is a backed enum in `src/`, and each case carries its data in an attribute that its getter methods read. The pages below document every public method, and the backing value of each enum.
+
+- [Geography enums](Geography-enums.md): `State`, `CanadianProvince`, `Country`, `County` and `ZipCode`.
+- [Language enums](Language-enums.md): `Language` and `LanguageBCP47`.
+- [Classification enums](Classification-enums.md): `IscedA2011`, `IscedP2011`, `IscedF2013`, `Isco08`, `CredentialRegistry` and `InternationalCodeDesignator`.
+- [Schema.org enums](Schema-org-enums.md): `SchemaType`, `SchemaProperty`, `SchemaDataType` and `SchemaEnumerationMember`.
+- [Currency, MIME type and month enums](Currency-MIME-type-and-month-enums.md): `Currency`, `MimeType` and `ApStyleGregorianMonth`.
+- [Metadata attributes](Metadata-attributes.md): the `Info` attribute classes, reading a field a getter does not expose, and `EnumDataUtils`.
+
+## The commands and scripts
+
+- [Generator commands](Generator-commands.md): the nine commands that rebuild the enums.
+- [Schema.org JSON-LD analyzer](Schema-org-JSON-LD-analyzer.md): `scripts/analyze-schema-jsonld.php`.
