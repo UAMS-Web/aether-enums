@@ -1,4 +1,4 @@
-Written against v0.2.1.
+Written against v0.2.2.
 
 `Language` lists ISO 639 languages and `LanguageBCP47` lists BCP 47 language tags, both in the `UAMSWeb\Aether\Enums` namespace.
 
@@ -16,15 +16,15 @@ Neither enum is a candidate for a dropdown of every case; filter by `type()` or 
 | `name()` | `string`, the English name | `English` |
 | `scope()` | `string` | `Individual` |
 | `type()` | `string` | `Living` |
-| `iso639_1()` | `string`, the two-letter code | `en` |
-| `iso639_2_b()` | `string`, the bibliographic three-letter code | `eng` |
-| `iso639_2_t()` | `string`, the terminologic three-letter code | `eng` |
-| `iso639_3()` | `string` | `eng` |
-| `iso639_5()` | `string`, the ISO 639-5 code | throws `ValueError` for this case |
+| `iso639_1()` | `?string`, the two-letter code | `en` |
+| `iso639_2_b()` | `?string`, the bibliographic three-letter code | `eng` |
+| `iso639_2_t()` | `?string`, the terminologic three-letter code | `eng` |
+| `iso639_3()` | `?string`, the ISO 639-3 code | `eng` |
+| `iso639_5()` | `?string`, the ISO 639-5 code | `null` for this case |
 | `alternate_names()` | `array<int, string>` | `["anglais", "Englisch"]` |
 | `Language::fieldValueForLanguageCode($code, $field)` | `string`, `array` or `null`: one field for a code, `null` when the code is unknown or the field has no value | `fieldValueForLanguageCode('eng', 'name')` is `English` |
 
-**Warning:** the five code getters (`iso639_1()`, `iso639_2_b()`, `iso639_2_t()`, `iso639_3()`, `iso639_5()`) throw a `ValueError` (`Unknown field 'iso639_1' for language: aaa`) for a case that has no such code, and most cases lack some of them: measured over all 8,037 cases, `iso639_1()` throws for 7,853, `iso639_2_b()` and `iso639_2_t()` for 7,552, `iso639_3()` for 113 and `iso639_5()` for 7,924. This is tracked in [#66](https://github.com/UAMS-Web/aether-enums/issues/66). Until it is decided, read an optional code through `Language::fieldValueForLanguageCode($code, 'iso639_1')`, which returns `null` instead of throwing, or catch the `ValueError`. `name()`, `scope()`, `type()` and `alternate_names()` are not affected.
+**Note:** the five code getters (`iso639_1()`, `iso639_2_b()`, `iso639_2_t()`, `iso639_3()`, `iso639_5()`) return `null` for a case that has no such code, and most cases lack some of them: measured over all 8,037 cases, `iso639_1()` is `null` for 7,853, `iso639_2_b()` and `iso639_2_t()` for 7,552, `iso639_3()` for 113 and `iso639_5()` for 7,924. Through v0.2.1 they threw a `ValueError` instead; see [Troubleshooting](Troubleshooting.md#fixed). `name()`, `scope()`, `type()` and `alternate_names()` are not affected.
 
 ## LanguageBCP47
 
@@ -46,4 +46,4 @@ The registry's optional fields return `null` when a tag has none.
 ## See also
 
 - [Metadata attributes](Metadata-attributes.md): `LanguageInfo` and `LanguageBCP47Info` hold every field.
-- [Troubleshooting](Troubleshooting.md): the `Unknown field` error.
+- [Troubleshooting](Troubleshooting.md): the `Unknown field` errors that v0.2.2 fixed.

@@ -1,10 +1,8 @@
-Written against v0.2.1.
+Written against v0.2.2.
 
 One entry per symptom, as you meet it: the message or behavior, its cause, and the fix.
 
 - [`"72201" is not a valid backing value for enum ...ZipCode`](#72201-is-not-a-valid-backing-value-for-enum-zipcode)
-- [`Unknown field 'parent' for county`](#unknown-field-parent-for-county)
-- [`Unknown field 'iso639_1' for language`](#unknown-field-iso639_1-for-language)
 - [A regeneration left the committed enum unchanged](#a-regeneration-left-the-committed-enum-unchanged)
 - [A regeneration changed nothing in the checkout](#a-regeneration-changed-nothing-in-the-checkout)
 - [The generated `ZipCode` file has no cases](#the-generated-zipcode-file-has-no-cases)
@@ -24,30 +22,6 @@ ValueError: "72201" is not a valid backing value for enum UAMSWeb\Aether\Enums\Z
 **Cause:** `ZipCode`, `County` and `MimeType` are backed by their case names, not by the code or the type string. `MimeType::from('application/pdf')` fails the same way.
 
 **Fix:** use the case name (`ZipCode::from('ZIP_72201')`, `County::from('AR_BENTON_COUNTY')`), or find the case another way: `MimeType::findByMimeType('application/pdf')` and `MimeType::findByExtension('pdf')`. `tryFrom()` returns `null` instead of throwing. See [Geography enums](Geography-enums.md).
-
-## Unknown field 'parent' for county
-
-`County::parent()` throws:
-
-```text
-ValueError: Unknown field 'parent' for county: AR_BENTON_COUNTY
-```
-
-**Cause:** a defect in v0.2.1. The method reads a field that the county data map never holds, so it throws for every one of the 3,243 cases. It is tracked in [#65](https://github.com/UAMS-Web/aether-enums/issues/65).
-
-**Fix:** read the parent state from the case's attribute: `parentUspsCode` and `parentFipsCode` on `CountyInfo`, as shown in [Metadata attributes](Metadata-attributes.md).
-
-## Unknown field 'iso639_1' for language
-
-A `Language` getter throws:
-
-```text
-ValueError: Unknown field 'iso639_1' for language: aaa
-```
-
-**Cause:** the case has no value for that code, and the getter treats an empty field as an unknown one. Most cases lack `iso639_1`, `iso639_2_b`, `iso639_2_t` and `iso639_5`, and 113 lack `iso639_3`. It is tracked in [#66](https://github.com/UAMS-Web/aether-enums/issues/66).
-
-**Fix:** read an optional code with `Language::fieldValueForLanguageCode($code, 'iso639_1')`, which returns `null` for an empty field, or catch the `ValueError`. See [Language enums](Language-enums.md).
 
 ## A regeneration left the committed enum unchanged
 
@@ -103,4 +77,10 @@ Error: <path>/vendor/autoload.php not found. Run this script from a checkout of 
 
 ## Fixed
 
-Problems fixed in a release stay here, with the release that fixed them, instead of being deleted. None has been fixed since `v0.2.1`.
+Problems fixed in a release stay here, with the release that fixed them, instead of being deleted.
+
+### v0.2.2
+
+**Unknown field 'parent' for county.** `County::parent()` threw `ValueError: Unknown field 'parent' for county: AR_BENTON_COUNTY` for every one of the 3,243 cases, because it read a field the county data map never held ([#65](https://github.com/UAMS-Web/aether-enums/issues/65)). It returns the parent's USPS code (`AR`). On v0.2.1 or earlier, read `parentUspsCode` or `parentFipsCode` from the case's `CountyInfo` attribute, as [Metadata attributes](Metadata-attributes.md) shows.
+
+**Unknown field 'iso639_1' for language.** A `Language` code getter (`iso639_1()`, `iso639_2_b()`, `iso639_2_t()`, `iso639_3()`, `iso639_5()`) threw `ValueError: Unknown field 'iso639_1' for language: aaa` for a case with no such code ([#66](https://github.com/UAMS-Web/aether-enums/issues/66)). The getters return `null` for an absent code, and their return type is `?string`. On v0.2.1 or earlier, read an optional code with `Language::fieldValueForLanguageCode($code, 'iso639_1')`, which returns `null`, or catch the `ValueError`. See [Language enums](Language-enums.md).

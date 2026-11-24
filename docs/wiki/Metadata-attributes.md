@@ -1,4 +1,4 @@
-Written against v0.2.1.
+Written against v0.2.2.
 
 Each enum case carries its data in a PHP attribute, and the enum's getter methods read that attribute. Eighteen attribute classes hold the data: eleven in the `UAMSWeb\Aether\Enums` namespace beside their enums, and seven in `UAMSWeb\Aether\Enums\Attributes`. The three ISCED enums share `IscedInfo`. Each class is a plain value object whose constructor properties are the fields below, in the order shown.
 
@@ -39,7 +39,7 @@ $info->alpha3;   // "USA"
 $info->useThe;   // true
 ```
 
-The same pattern reads the parent of a county, which `County::parent()` cannot return in v0.2.1 (see [Geography enums](Geography-enums.md)):
+The same pattern reads any field that has no getter, such as the FIPS code of a county's state:
 
 ```php
 use UAMSWeb\Aether\Enums\County;
@@ -49,7 +49,7 @@ $info = (new \ReflectionEnumUnitCase(County::class, 'AR_BENTON_COUNTY'))
     ->getAttributes(CountyInfo::class)[0]
     ->newInstance();
 
-$info->parentUspsCode;  // "AR"
+$info->parentFipsCode;  // "05"
 ```
 
 The enums with an `info()` method (`CredentialRegistry` and the four schema.org enums) return the attribute directly, or `null`.
@@ -61,7 +61,7 @@ The enums with an `info()` method (`CredentialRegistry` and the four schema.org 
 | Method | Purpose |
 | --- | --- |
 | `buildLazyDataMap($enumClass, $attributeClass, $dataExtractor)` | Builds and caches the map by reading each case's attribute through reflection |
-| `getFieldValue($dataMap, $caseValue, $fieldName, $enumName)` | Returns a field, and throws a `ValueError` when the case is unknown (`Unknown <enum>: <value>`) or the field is unset (`Unknown field 'iso639_5' for language: eng`); a `null` field counts as unset |
+| `getFieldValue($dataMap, $caseValue, $fieldName, $enumName)` | Returns a field, and throws a `ValueError` when the case is unknown (`Unknown <enum>: <value>`) or the field is unset (`Unknown field '<field>' for <enum>: <value>`); a `null` field counts as unset |
 | `getBooleanFieldValue(..., bool $defaultValue = false)` | Returns a boolean field, or the default when the field is unset |
 | `getIntegerFieldValue(...)` | Returns an integer field |
 | `getArrayFieldValue(...)` | Returns an array field |
@@ -69,4 +69,4 @@ The enums with an `info()` method (`CredentialRegistry` and the four schema.org 
 
 ## See also
 
-- [Troubleshooting](Troubleshooting.md): the `Unknown field` error.
+- [Troubleshooting](Troubleshooting.md): the `Unknown field` errors that v0.2.2 fixed.
