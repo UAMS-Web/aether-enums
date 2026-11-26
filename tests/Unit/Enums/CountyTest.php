@@ -5,11 +5,12 @@ declare(strict_types=1);
 use UAMSWeb\Aether\Enums\County;
 use UAMSWeb\Aether\Enums\CountyInfo;
 
-covers(County::class);
-
 /**
  * Behavior of UAMSWeb\Aether\Enums\County getters: the full name, the three-digit
  * county FIPS code and the parent state's USPS code (#65).
+ *
+ * No `covers()`: `src/County.php` is a generated enum, excluded from coverage in
+ * `phpunit.xml`, and naming it fails every coverage and mutation run (#97).
  *
  * @command  php artisan test --compact tests/Unit/Enums/CountyTest.php
  */
