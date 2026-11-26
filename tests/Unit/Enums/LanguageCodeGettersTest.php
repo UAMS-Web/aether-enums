@@ -5,11 +5,12 @@ declare(strict_types=1);
 use UAMSWeb\Aether\Enums\Language;
 use UAMSWeb\Aether\Enums\LanguageInfo;
 
-covers(Language::class);
-
 /**
  * Behavior of the Language ISO 639 code getters: the code a case holds, or null
  * for a code it lacks, instead of a ValueError (#66, #70).
+ *
+ * No `covers()`: `src/Language.php` is a generated enum, excluded from coverage in
+ * `phpunit.xml`, and naming it fails every coverage and mutation run (#97).
  *
  * @command  php artisan test --compact tests/Unit/Enums/LanguageCodeGettersTest.php
  */
